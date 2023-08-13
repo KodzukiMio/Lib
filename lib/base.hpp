@@ -1,5 +1,9 @@
 #pragma once
+#ifndef _KURZERbase_
+#define _KURZERbase_
+#endif
 namespace kurzer{
+
     template<class Tchar> class CharT{
     public:
     #ifdef _XSTRING_
@@ -9,8 +13,30 @@ namespace kurzer{
         using out_t = std::basic_ostream<Tchar,std::char_traits<Tchar>>;
     #endif // _IOSTREAM_
     };
+    //typename kurzer::enable_if<TRUE?>::type*=nullptr
+    template<bool condition,class T = void>struct enable_if{};
+    template<class T>struct enable_if<true,T>{ typedef T type; };
+    //is_same<T1,T2>::value
+    template <typename T,typename U>struct is_same{
+        static constexpr bool value = false;
+    };
+    template <typename T>struct is_same<T,T>{
+        static constexpr bool value = true;
+    };
+    //is_character<T>::value
+    template<typename T>struct is_character{
+        static constexpr bool value = kurzer::is_same<T,char>::value || kurzer::is_same<T,wchar_t>::value || kurzer::is_same<T,char8_t>::value || kurzer::is_same<T,char16_t>::value || kurzer::is_same<T,char32_t>::value;
+    };
+    //size_t
     typedef unsigned long long ull;
+
+//_KUR_TEMPLATE_TYPE_IS(T1,T2)
+#define _KUR_TEMPLATE_TYPE_IS(Type,Is_Ty)template <typename Type,typename kurzer::enable_if<kurzer::is_same<Type,Is_Ty>::value>::type* = nullptr>
+//_KUR_TEMPLATE_T_IS(T2)
+#define _KUR_TEMPLATE_T_IS(Is_Ty) _KUR_TEMPLATE_TYPE_IS(T,Is_Ty) 
+
     namespace base{
+
         template<typename Type>class Array{
         public:
             Type* _chunk = 0;
@@ -94,8 +120,10 @@ namespace kurzer{
                 delete[] _chunk;
             };
             ull Size(){ return this->_size; };
+            Type* GetData(){ return this->_chunk; };
         };
-        template<typename Tchar,ull baseN = 0x10>class String{
+
+        template<typename Tchar,ull baseN = 0x10,typename kurzer::enable_if<kurzer::is_character<Tchar>::value>::type* = nullptr>class String{
         public:
             base::Array<Tchar> data;
             String(){};
@@ -125,21 +153,23 @@ namespace kurzer{
             String& Write(const Tchar* tch){
                 for (ull i = 0; i < this->strlen(tch); i++){
                     this->data.push(*(tch + i));
-                }
+                };
                 return *this;
             };
             String& Write(const String& str){
                 const Tchar* data = str.GetData();
                 for (ull i = 0; i < str.data.Length(); i++){
                     this->data.push(*(data + i));
-                }
+                };
                 return *this;
             };
             String& operator=(const Tchar* tch){
+                this->Clear();
                 this->Write(tch);
                 return *this;
             };
             String& operator=(const String& str){
+                this->Clear();
                 this->Write(str);
                 return *this;
             };
@@ -155,27 +185,39 @@ namespace kurzer{
                 result.push(this->substr(start,this->data.Length() - start));
                 return result;
             };
-            ull find_impl(const String& str,ull start) const{
-                if (str.data.Length() > this->data.Length()){
-                    return -1;
-                }
-                for (ull i = start; i <= this->data.Length() - str.data.Length(); i++){
-                    bool match = true;
-                    for (ull j = 0; j < str.data.Length(); j++){
-                        if (*(this->data[i + j]) != *(str.data[j])){
-                            match = false;
-                            break;
-                        }
-                    }
-                    if (match) return i;
-                }
+            //KMP algorithm
+            Array<ull> computePrefix(const String& pattern){
+                ull m = pattern.data.Length();
+                Array<ull> pi(m);
+                ull k = 0;
+                for (ull q = 1; q < m; q++){
+                    while (k > 0 && *(pattern.data[k]) != *(pattern.data[q])){
+                        k = pi[k - 1];
+                    };
+                    if (*(pattern.data[k]) == *(pattern.data[q])){
+                        k++;
+                    };
+                    pi.push(k);
+                };
+                return pi;
+            };
+            ull find(const String& str){
+                ull n = this->data.Length();
+                ull m = str.data.Length();
+                Array<ull> pi = computePrefix(str);
+                ull q = 0;
+                for (ull i = 0; i < n; i++){
+                    while (q > 0 && *(str.data[q]) != *(this->data[i])){
+                        q = pi[q - 1];
+                    };
+                    if (*(str.data[q]) == *(this->data[i])){
+                        q++;
+                    };
+                    if (q == m){
+                        return i - m + 1;
+                    };
+                };
                 return -1;
-            };
-            ull find(const String& str,ull start = 0){
-                return find_impl(str,start);
-            };
-            ull find(const String& str,ull start = 0) const{
-                return find_impl(str,start);
             };
             String substr(ull start,ull length){
                 String result;
@@ -193,7 +235,28 @@ namespace kurzer{
             };
         #endif // _IOSTREAM_
         };
+
         using string = String<char,0x10>;
         using wstring = String<wchar_t,0x10>;
+
     };
+
+    template<typename T>class MultiDimensionalArray{
+    private:
+        //TODO
+    public:
+        ull size_ = 0;
+        base::Array<T>* elements = nullptr;
+        template<typename... Args>MultiDimensionalArray(Args... args){
+            this->size_ = sizeof...(args);
+            elements = new base::Array<T>(this->size_);
+            (elements->push(args),...);
+        };
+        ~MultiDimensionalArray(){
+            if (elements){
+                delete elements;
+            };
+        };
+    };
+
 };
