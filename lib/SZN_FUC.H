@@ -1,4 +1,4 @@
-﻿//SZN_FUNC.H
+﻿//2021-2022
 //适用于 VS C++17
 #pragma once
 #ifndef SZN_FUNC_H_

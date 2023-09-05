@@ -1,3 +1,4 @@
+//2023-2024
 #pragma once
 #ifndef _KURZERbase_
 #define _KURZERbase_
@@ -30,11 +31,13 @@ namespace kurzer{
     //size_t
     typedef unsigned long long ull;
 
-//_KUR_TEMPLATE_TYPE_IS(T1,T2)
+    //_KUR_TEMPLATE_TYPE_IS(T1,T2)
 #define _KUR_TEMPLATE_TYPE_IS(Type,Is_Ty)template <typename Type,typename kurzer::enable_if<kurzer::is_same<Type,Is_Ty>::value>::type* = nullptr>
 //_KUR_TEMPLATE_T_IS(T2)
 #define _KUR_TEMPLATE_T_IS(Is_Ty) _KUR_TEMPLATE_TYPE_IS(T,Is_Ty) 
+    namespace algorithm{
 
+    };
     namespace base{
 
         template<typename Type>class Array{
@@ -82,13 +85,19 @@ namespace kurzer{
                 if (!nsize)return nullptr;
                 return new Type[nsize];
             };
-            Type* operator[](ull index){
+            Type& operator[](ull index){
+                return *(this->_chunk + index);
+            }
+            const Type& operator[](ull index) const{
+                return *(this->_chunk + index);
+            }
+            Type* operator()(ull index){
                 if (index < this->_pos){
                     return this->_chunk + index;
                 }
                 return nullptr;
             };
-            const Type* operator[](ull index) const{
+            const Type* operator()(ull index) const{
                 if (index < this->_pos){
                     return this->_chunk + index;
                 };
@@ -141,11 +150,17 @@ namespace kurzer{
                 data.Free();
                 data.create(baseN);
             };
-            Tchar operator[](const ull pos){
-                return *(data[pos]);
+            Tchar& operator[](const ull pos){
+                return data[pos];
+            };
+            const Tchar& operator[](const ull pos) const{
+                return data[pos];
             };
             Tchar* operator()(const ull pos){
-                return data[pos];
+                return &data[pos];
+            };
+            const Tchar* operator()(const ull pos) const{
+                return &data[pos];
             };
             Tchar* GetData()const{
                 return data._chunk;
@@ -173,63 +188,17 @@ namespace kurzer{
                 this->Write(str);
                 return *this;
             };
-            base::Array<String> split(const String& delimiter){
-                base::Array<String> result;
-                ull start = 0;
-                ull end = this->find(delimiter);
-                while (end != -1){
-                    result.push(this->substr(start,end - start));
-                    start = end + delimiter.data.Length();
-                    end = this->find(delimiter,start);
-                };
-                result.push(this->substr(start,this->data.Length() - start));
-                return result;
-            };
-            //KMP algorithm
-            Array<ull> computePrefix(const String& pattern){
-                ull m = pattern.data.Length();
-                Array<ull> pi(m);
-                ull k = 0;
-                for (ull q = 1; q < m; q++){
-                    while (k > 0 && *(pattern.data[k]) != *(pattern.data[q])){
-                        k = pi[k - 1];
-                    };
-                    if (*(pattern.data[k]) == *(pattern.data[q])){
-                        k++;
-                    };
-                    pi.push(k);
-                };
-                return pi;
-            };
-            ull find(const String& str){
-                ull n = this->data.Length();
-                ull m = str.data.Length();
-                Array<ull> pi = computePrefix(str);
-                ull q = 0;
-                for (ull i = 0; i < n; i++){
-                    while (q > 0 && *(str.data[q]) != *(this->data[i])){
-                        q = pi[q - 1];
-                    };
-                    if (*(str.data[q]) == *(this->data[i])){
-                        q++;
-                    };
-                    if (q == m){
-                        return i - m + 1;
-                    };
-                };
-                return -1;
-            };
             String substr(ull start,ull length){
                 String result;
                 for (ull i = start; i < start + length; i++){
-                    result.data.push(*(this->data[i]));
+                    result.data.push(this->data[i]);
                 };
                 return result;
             };
         #ifdef _IOSTREAM_
-            friend std::ostream& operator<<(std::ostream& os,const String& str){
+            friend kurzer::CharT<Tchar>::out_t& operator<<(kurzer::CharT<Tchar>::out_t& os,const String<Tchar>& str){
                 for (ull i = 0; i < str.data.Length(); ++i){
-                    os << *(str.data[i]);
+                    os << str[i];
                 };
                 return os;
             };
