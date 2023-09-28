@@ -41,7 +41,7 @@ public:
         for (size_t i = 0; i < N; ++i){
             if (value[i]){
                 std::bitset<N> temp = reg << i;
-                this->Add(result, temp);
+                this->Add(result,temp);
             }
         }
         reg = result;
@@ -63,12 +63,12 @@ int UBIDB2(std::string& num){//u dec / 2
 }
 std::string UBITB(std::string& dec){//u dec -> bin
     std::string stmp = dec;
-    std::string bin = "";
+    std::string bin;
     while (stmp.size() > 1 || (stmp[0] - '0') >= 1){
         bin.push_back(UBIDB2(stmp) + '0');
     }
     std::reverse(bin.begin(),bin.end());
-    return bin;
+    return bin.empty() ? "0" : bin;
 };
 
 std::string UBIPBI(std::string& p0,std::string& p1){//u dec + dec
@@ -122,7 +122,7 @@ int main(){
     std::bitset<r2m>b0(UBITB(str0));
     std::bitset<r2m>b1(UBITB(str1));
     alu.SetReg(b0);
-    alu.Subtract(b1);
+    alu.Multiply(b1);
     std::cout << UBTBI(alu.reg.to_string());
     return 0;
 }
