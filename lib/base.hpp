@@ -1,77 +1,71 @@
 //2023-2024
 #pragma once
-#ifndef _KURZERbase_
-#define _KURZERbase_
+#ifndef _kurzerbase_
+#define _kurzerbase_
 #endif
-namespace kurzer{
-    //size_t
-    typedef unsigned long long ull;
-
-    template<class Tchar> class CharT{
-    public:
-    #ifdef _XSTRING_
-        using char_t = std::basic_string<Tchar,std::char_traits<Tchar>,std::allocator<Tchar>>;
-    #endif // _XSTRING_
-    #ifdef _IOSTREAM_
-        using out_t = std::basic_ostream<Tchar,std::char_traits<Tchar>>;
-    #endif // _IOSTREAM_
-    };
-    //typename kurzer::enable_if<TRUE?>::type* = nullptr
-    template<bool condition,class T = void>struct enable_if{};
-    template<class T>struct enable_if<true,T>{ typedef T type; };
-    //is_same<T1,T2>::value
-    template <typename T,typename U>struct is_same{
-        static constexpr bool value = false;
-    };
-    template <typename T>struct is_same<T,T>{
-        static constexpr bool value = true;
-    };
-    //is_character<T>::value
-    template<typename T>struct is_character{
-        static constexpr bool value = kurzer::is_same<T,char>::value || kurzer::is_same<T,wchar_t>::value || kurzer::is_same<T,char8_t>::value || kurzer::is_same<T,char16_t>::value || kurzer::is_same<T,char32_t>::value;
-    };
-    template<typename _T0,typename _T1>using _Is_Same = typename kurzer::enable_if<kurzer::is_same<_T0,_T1>::value>::type*;
-
-    //is_lvalue_reference<T>::value
-    template<typename T>struct is_lvalue_reference{
-        static const bool value = false;
-    };
-    template<typename T>struct is_lvalue_reference<T&>{
-        static const bool value = true;
-    };
-    //is_rvalue_reference<T>::value
-    template<typename T>struct is_rvalue_reference{
-        static const bool value = false;
-    };
-    template<typename T>struct is_rvalue_reference<T&&>{
-        static const bool value = true;
-    };
-    //remove_reference<T>::type
-    template<typename T> struct remove_reference{ typedef T type; };
-    template<typename T> struct remove_reference<T&>{ typedef T type; };
-    template<typename T> struct remove_reference<T&&>{ typedef T type; };
-    //move
-    template <typename T>typename kurzer::remove_reference<T>::type&& move(T&& _Ty){
-        return static_cast<typename kurzer::remove_reference<T>::type&&>(_Ty);
-    }
-    //forward<_Tp>(...);
-    template<typename _Tp>constexpr _Tp&& forward(typename kurzer::remove_reference<_Tp>::type& _Arg)noexcept{//left value
-        return static_cast<_Tp&&>(_Arg);
-    }
-    template<typename _Tp>constexpr _Tp&& forward(typename kurzer::remove_reference<_Tp>::type&& _Arg)noexcept{//right value
-        static_assert(!kurzer::is_lvalue_reference<_Tp>::value,"_Arg is not a right value.");
-        return static_cast<_Tp&&>(_Arg);
-    };
-
-    //_KUR_TEMPLATE_TYPE_IS(T1,T2)
-#define _KUR_TEMPLATE_TYPE_IS(Type,Is_Ty)template <typename Type,typename kurzer::enable_if<kurzer::is_same<Type,Is_Ty>::value>::type* = nullptr>
-//_KUR_TEMPLATE_T_IS(T2)
-#define _KUR_TEMPLATE_T_IS(Is_Ty) _KUR_TEMPLATE_TYPE_IS(T,Is_Ty) 
-    namespace algorithm{
-
-    };
+namespace KUR{
     namespace base{
+        //size_t
+        typedef unsigned long long ull;
+        template<class Tchar> class CharT{
+        public:
+        #ifdef _XSTRING_
+            using char_t = std::basic_string<Tchar,std::char_traits<Tchar>,std::allocator<Tchar>>;
+        #endif // _XSTRING_
+        #ifdef _IOSTREAM_
+            using out_t = std::basic_ostream<Tchar,std::char_traits<Tchar>>;
+        #endif // _IOSTREAM_
+        };
+        //typename base::enable_if<TRUE?>::type* = nullptr
+        template<bool condition,class T = void>struct enable_if{};
+        template<class T>struct enable_if<true,T>{ typedef T type; };
+        //is_same<T1,T2>::value
+        template <typename T,typename U>struct is_same{
+            static constexpr bool value = false;
+        };
+        template <typename T>struct is_same<T,T>{
+            static constexpr bool value = true;
+        };
+        //is_character<T>::value
+        template<typename T>struct is_character{
+            static constexpr bool value = base::is_same<T,char>::value || base::is_same<T,wchar_t>::value || base::is_same<T,char8_t>::value || base::is_same<T,char16_t>::value || base::is_same<T,char32_t>::value;
+        };
+        template<typename _T0,typename _T1>using _Is_Same = typename base::enable_if<base::is_same<_T0,_T1>::value>::type*;
 
+        //is_lvalue_reference<T>::value
+        template<typename T>struct is_lvalue_reference{
+            static const bool value = false;
+        };
+        template<typename T>struct is_lvalue_reference<T&>{
+            static const bool value = true;
+        };
+        //is_rvalue_reference<T>::value
+        template<typename T>struct is_rvalue_reference{
+            static const bool value = false;
+        };
+        template<typename T>struct is_rvalue_reference<T&&>{
+            static const bool value = true;
+        };
+        //remove_reference<T>::type
+        template<typename T> struct remove_reference{ typedef T type; };
+        template<typename T> struct remove_reference<T&>{ typedef T type; };
+        template<typename T> struct remove_reference<T&&>{ typedef T type; };
+        //move
+        template <typename T>typename base::remove_reference<T>::type&& move(T&& _Ty){
+            return static_cast<typename base::remove_reference<T>::type&&>(_Ty);
+        }
+        //forward<_Tp>(...);
+        template<typename _Tp>constexpr _Tp&& forward(typename base::remove_reference<_Tp>::type& _Arg)noexcept{//left value
+            return static_cast<_Tp&&>(_Arg);
+        }
+        template<typename _Tp>constexpr _Tp&& forward(typename base::remove_reference<_Tp>::type&& _Arg)noexcept{//right value
+            static_assert(!base::is_lvalue_reference<_Tp>::value,"_Arg is not a right value.");
+            return static_cast<_Tp&&>(_Arg);
+        };
+        //_KUR_TEMPLATE_TYPE_IS(T1,T2)
+    #define _KUR_TEMPLATE_TYPE_IS(Type,Is_Ty)template <typename Type,typename base::enable_if<base::is_same<Type,Is_Ty>::value>::type* = nullptr>
+    //_KUR_TEMPLATE_T_IS(T2)
+    #define _KUR_TEMPLATE_T_IS(Is_Ty) _KUR_TEMPLATE_TYPE_IS(T,Is_Ty) 
         template<typename Type>class Array{
         public:
             Type* _chunk = 0;
@@ -165,8 +159,8 @@ namespace kurzer{
             ull Size(){ return this->_size; };
             Type* GetData(){ return this->_chunk; };
         };
-
-        template<typename Tchar,ull baseN = 0x10,typename kurzer::enable_if<kurzer::is_character<Tchar>::value>::type* = nullptr>class String{
+        template<typename T>using array = Array<T>;
+        template<typename Tchar,ull baseN = 0x10,typename base::enable_if<base::is_character<Tchar>::value>::type* = nullptr>class String{
         public:
             base::Array<Tchar> data;
             String(){};
@@ -230,7 +224,7 @@ namespace kurzer{
                 return result;
             };
         #ifdef _IOSTREAM_
-            friend kurzer::CharT<Tchar>::out_t& operator<<(kurzer::CharT<Tchar>::out_t& os,const String<Tchar>& str){
+            friend base::CharT<Tchar>::out_t& operator<<(base::CharT<Tchar>::out_t& os,const String<Tchar>& str){
                 for (ull i = 0; i < str.data.Length(); ++i){
                     os << str[i];
                 };
@@ -238,6 +232,8 @@ namespace kurzer{
             };
         #endif // _IOSTREAM_
         };
+        using string = String<char,0x10>;
+        using wstring = String<wchar_t,0x10>;
         template<typename T>class Queue{
         public:
             base::Array<T>_data;
@@ -246,37 +242,36 @@ namespace kurzer{
             Queue(ull _BaseN = 0x10){
                 _data.create(_BaseN);
             }
+            template<typename _Ty>inline void push(const _Ty&& _Val){
+                this->_push(base::forward<const _Ty>(_Val));
+            }
             template<typename _Ty>inline void push(_Ty&& _Val){
-                this->_push(kurzer::forward<_Ty>(_Val));
+                this->_push(base::forward<_Ty>(_Val));
             }
-            inline void _push(T& _Val){
+            inline void _push(const T& _Val_L){
 
             }
-            inline void _push(T&& _Val){
+            inline void _push(const T&& _Val_R){
 
             }
         };
-        using string = String<char,0x10>;
-        using wstring = String<wchar_t,0x10>;
-
-    };
-
-    template<typename T>class MultiDimensionalArray{
-    private:
-        //TODO
-    public:
-        ull size_ = 0;
-        base::Array<T>* elements = nullptr;
-        template<typename... Args>MultiDimensionalArray(Args... args){
-            this->size_ = sizeof...(args);
-            elements = new base::Array<T>(this->size_);
-            (elements->push(args),...);
-        };
-        ~MultiDimensionalArray(){
-            if (elements){
-                delete elements;
+        template<typename T> using queue = Queue<T>;
+        template<typename T>class MultiDimensionalArray{
+        private:
+            //TODO
+        public:
+            ull size_ = 0;
+            base::Array<T>* elements = nullptr;
+            template<typename... Args>MultiDimensionalArray(Args... args){
+                this->size_ = sizeof...(args);
+                elements = new base::Array<T>(this->size_);
+                (elements->push(args),...);
+            };
+            ~MultiDimensionalArray(){
+                if (elements){
+                    delete elements;
+                };
             };
         };
     };
-
 };
