@@ -139,7 +139,7 @@ namespace kurzer{
             String(const Tchar* tch){
                 this->Write(tch);
             };
-            ull strlen(const Tchar* str){
+            static ull strlen(const Tchar* str){
                 const Tchar* p = str;
                 while (*p){
                     ++p;
