@@ -7,6 +7,13 @@ namespace KUR{
     namespace base{
         //size_t
         typedef unsigned long long ull;
+        template<typename Tchar> inline static ull strlen(const Tchar* str){
+            const Tchar* p = str;
+            while (*p){
+                ++p;
+            };
+            return p - str;
+        };
         template<class Tchar> class CharT{
         public:
         #ifdef _XSTRING_
@@ -129,7 +136,7 @@ namespace KUR{
                 };
                 return nullptr;
             };
-            inline void push(const Type value){
+            template<typename T> inline void push(const T&& value){
                 if (++this->_pos > this->_size){
                     expand();
                 };
@@ -167,13 +174,6 @@ namespace KUR{
             String(const Tchar* tch){
                 this->Write(tch);
             };
-            inline static ull strlen(const Tchar* str){
-                const Tchar* p = str;
-                while (*p){
-                    ++p;
-                };
-                return p - str;
-            };
             inline void Clear(){
                 data.Free();
                 data.create(baseN);
@@ -194,15 +194,17 @@ namespace KUR{
                 return data._chunk;
             };
             inline String& Write(const Tchar* tch){
-                ull _len = this->strlen(tch);
-                for (ull i = 0; i < _len; ++i){
-                    this->data.push(*(tch + i));
-                };
+                const Tchar* _tch = tch;
+                while (*_tch){
+                    this->data.push(*_tch);
+                    ++_tch;
+                }
                 return *this;
             };
             inline String& Write(const String& str){
                 const Tchar* data = str.GetData();
-                for (ull i = 0; i < str.data.Length(); ++i){
+                ull _len = str.data.Length();
+                for (ull i = 0; i < _len; ++i){
                     this->data.push(*(data + i));
                 };
                 return *this;
@@ -227,7 +229,8 @@ namespace KUR{
             };
         #ifdef _IOSTREAM_
             friend base::CharT<Tchar>::out_t& operator<<(base::CharT<Tchar>::out_t& os,const String<Tchar>& str){
-                for (ull i = 0; i < str.data.Length(); ++i){
+                ull _len = str.data.Length();
+                for (ull i = 0; i < _len; ++i){
                     os << str[i];
                 };
                 return os;
