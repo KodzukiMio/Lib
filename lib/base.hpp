@@ -71,7 +71,7 @@ namespace KUR{
             Type* _chunk = 0;
             ull _size = 0;
             ull _pos = 0;
-            void expand(){
+            inline void expand(){
                 Type* temp = _chunk;
                 ull _esize = (_size >> 1) + _size;
                 this->_chunk = Malloc(_esize);
@@ -84,7 +84,7 @@ namespace KUR{
             Array(ull initSize = 0x10){
                 create(initSize);
             };
-            void create(ull initSize = 0x10){
+            inline void create(ull initSize = 0x10){
                 if (initSize < 0x2)initSize = 0x2;
                 this->_size = initSize;
                 this->_chunk = Malloc(initSize);
@@ -107,35 +107,35 @@ namespace KUR{
                 };
                 return *this;
             };
-            Type* Malloc(ull nsize){
+            inline Type* Malloc(ull nsize){
                 if (!nsize)return nullptr;
                 return new Type[nsize];
             };
-            Type& operator[](ull index){
+            inline Type& operator[](ull index){
                 return *(this->_chunk + index);
             }
-            const Type& operator[](ull index) const{
+            inline const Type& operator[](ull index) const{
                 return *(this->_chunk + index);
             }
-            Type* operator()(ull index){
+            inline Type* operator()(ull index){
                 if (index < this->_pos){
                     return this->_chunk + index;
                 }
                 return nullptr;
             };
-            const Type* operator()(ull index) const{
+            inline const Type* operator()(ull index) const{
                 if (index < this->_pos){
                     return this->_chunk + index;
                 };
                 return nullptr;
             };
-            void push(const Type value){
+            inline void push(const Type value){
                 if (++this->_pos > this->_size){
                     expand();
                 };
                 *(this->_chunk + _pos - 1) = value;
             };
-            void Free(){
+            inline void Free(){
                 if (_chunk){
                     delete[] _chunk;
                     _chunk = nullptr;
@@ -143,21 +143,21 @@ namespace KUR{
                 _size = 0;
                 _pos = 0;
             }
-            Type* begin(){ return _chunk; };
-            Type* end(){ return this->_chunk + _pos - 1; };
-            Type* pop(){
+            inline Type* begin(){ return _chunk; };
+            inline Type* end(){ return this->_chunk + _pos; };//end +1;
+            inline Type* pop(){
                 if (!_pos){
                     return nullptr;
                 };
                 --_pos;
                 return this->_chunk + _pos;
             };
-            ull Length()const{ return this->_pos; };
+            inline ull Length()const{ return this->_pos; };
             ~Array(){
                 delete[] _chunk;
             };
-            ull Size(){ return this->_size; };
-            Type* GetData(){ return this->_chunk; };
+            inline ull MaxSize(){ return this->_size; };
+            inline Type* GetData(){ return this->_chunk; };
         };
         template<typename T>using array = Array<T>;
         template<typename Tchar,ull baseN = 0x10,typename base::enable_if<base::is_character<Tchar>::value>::type* = nullptr>class String{
@@ -167,58 +167,60 @@ namespace KUR{
             String(const Tchar* tch){
                 this->Write(tch);
             };
-            static ull strlen(const Tchar* str){
+            inline static ull strlen(const Tchar* str){
                 const Tchar* p = str;
                 while (*p){
                     ++p;
                 };
                 return p - str;
             };
-            void Clear(){
+            inline void Clear(){
                 data.Free();
                 data.create(baseN);
             };
-            Tchar& operator[](const ull pos){
+            inline Tchar& operator[](const ull pos){
                 return data[pos];
             };
-            const Tchar& operator[](const ull pos) const{
+            inline const Tchar& operator[](const ull pos) const{
                 return data[pos];
             };
-            Tchar* operator()(const ull pos){
+            inline Tchar* operator()(const ull pos){
                 return &data[pos];
             };
-            const Tchar* operator()(const ull pos) const{
+            inline const Tchar* operator()(const ull pos) const{
                 return &data[pos];
             };
-            Tchar* GetData()const{
+            inline Tchar* GetData()const{
                 return data._chunk;
             };
-            String& Write(const Tchar* tch){
-                for (ull i = 0; i < this->strlen(tch); i++){
+            inline String& Write(const Tchar* tch){
+                ull _len = this->strlen(tch);
+                for (ull i = 0; i < _len; ++i){
                     this->data.push(*(tch + i));
                 };
                 return *this;
             };
-            String& Write(const String& str){
+            inline String& Write(const String& str){
                 const Tchar* data = str.GetData();
-                for (ull i = 0; i < str.data.Length(); i++){
+                for (ull i = 0; i < str.data.Length(); ++i){
                     this->data.push(*(data + i));
                 };
                 return *this;
             };
-            String& operator=(const Tchar* tch){
+            inline String& operator=(const Tchar* tch){
                 this->Clear();
                 this->Write(tch);
                 return *this;
             };
-            String& operator=(const String& str){
+            inline String& operator=(const String& str){
                 this->Clear();
                 this->Write(str);
                 return *this;
             };
-            String substr(ull start,ull length){
+            inline String substr(ull start,ull length){
                 String result;
-                for (ull i = start; i < start + length; i++){
+                ull _end = start + length;
+                for (ull i = start; i < _end; ++i){
                     result.data.push(this->data[i]);
                 };
                 return result;
