@@ -161,7 +161,9 @@ namespace KUR{
             };
             inline ull Length()const{ return this->_pos; };
             ~Array(){
-                delete[] _chunk;
+                if (_chunk){
+                    delete[] _chunk;
+                };
             };
             inline ull MaxSize(){ return this->_size; };
             inline Type* GetData(){ return this->_chunk; };
