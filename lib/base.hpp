@@ -1,8 +1,34 @@
 //2023-2024
+/*
+199711L - C++98 | C++03
+201103L - C++11
+201402L - C++14
+201703L - C++17
+202002L - C++20
+*/
 #pragma once
+#if __cplusplus < 201703L
+#error need >= C++17
+//如果版本确实>=c++17,那么请在编译命令行加入:/Zc:__cplusplus
+//例如：cl /EHsc /Zc:__cplusplus main.cpp 
+#endif
 #ifndef _kurzerbase_
 #define _kurzerbase_
 #endif
+/* #define options:
+*  (抛出异常) KURZER_ENABLE_EXCEPTIONS
+*
+*/
+#ifdef NDEBUG //release
+
+#else //debug
+#define KURZER_ENABLE_EXCEPTIONS
+#endif // NDEBUG
+
+#ifdef KURZER_ENABLE_EXCEPTIONS
+#include<stdexcept>
+#endif // KURZER_ENABLE_EXCEPTIONS
+
 namespace KUR{
     namespace base{
         //size_t
@@ -33,10 +59,16 @@ namespace KUR{
         template <typename T>struct is_same<T,T>{
             static constexpr bool value = true;
         };
-        //is_character<T>::value
+    #if __cplusplus == 202002L//c++20
         template<typename T>struct is_character{
             static constexpr bool value = base::is_same<T,char>::value || base::is_same<T,wchar_t>::value || base::is_same<T,char8_t>::value || base::is_same<T,char16_t>::value || base::is_same<T,char32_t>::value;
         };
+    #endif
+    #if __cplusplus == 201703L//c++17
+        template<typename T>struct is_character{
+            static constexpr bool value = base::is_same<T,char>::value || base::is_same<T,wchar_t>::value || base::is_same<T,char16_t>::value || base::is_same<T,char32_t>::value;
+        };
+    #endif
         template<typename _T0,typename _T1>using _Is_Same = typename base::enable_if<base::is_same<_T0,_T1>::value>::type*;
 
         //is_lvalue_reference<T>::value
@@ -136,11 +168,15 @@ namespace KUR{
                 };
                 return nullptr;
             };
-            template<typename T> inline void push(const T&& value){
-                if (++this->_pos > this->_size){
+            template<typename T> inline void push(const T value){
+                if (this->_pos == this->_size){
                     expand();
                 };
-                *(this->_chunk + _pos - 1) = value;
+                *(this->_chunk + _pos) = value;
+                ++_pos;
+            };
+            inline bool is_full(){
+                return this->_pos + 1 == this->_size;
             };
             inline void Free(){
                 if (_chunk){
@@ -151,13 +187,12 @@ namespace KUR{
                 _pos = 0;
             }
             inline Type* begin(){ return _chunk; };
-            inline Type* end(){ return this->_chunk + _pos; };//end +1;
+            inline Type* end(){ return this->_chunk + _pos; };
             inline Type* pop(){
                 if (!_pos){
                     return nullptr;
                 };
-                --_pos;
-                return this->_chunk + _pos;
+                return this->_chunk + --_pos;
             };
             inline ull Length()const{ return this->_pos; };
             ~Array(){
@@ -230,7 +265,7 @@ namespace KUR{
                 return result;
             };
         #ifdef _IOSTREAM_
-            friend base::CharT<Tchar>::out_t& operator<<(base::CharT<Tchar>::out_t& os,const String<Tchar>& str){
+            friend typename base::CharT<Tchar>::out_t& operator<<(typename base::CharT<Tchar>::out_t& os,const String<Tchar>& str){
                 ull _len = str.data.Length();
                 for (ull i = 0; i < _len; ++i){
                     os << str[i];
@@ -241,26 +276,51 @@ namespace KUR{
         };
         using string = String<char,0x10>;
         using wstring = String<wchar_t,0x10>;
-        template<typename T>class Queue{
+        template<typename T,ull _BaseN = 0x10> class Queue{
+        private:
+            ull _head = 0;
+            ull _tail = 0;
         public:
-            base::Array<T>_data;
-            ull _front = 0;
-            ull _rear = 0;
-            Queue(ull _BaseN = 0x10){
-                _data.create(_BaseN);
+            base::Array<T> _data = base::Array<T>(_BaseN);
+            Queue(){};
+            inline ull capacity(){
+                return _data.MaxSize();
             }
-            template<typename _Ty>inline void push(const _Ty&& _Val){
-                this->_push(base::forward<const _Ty>(_Val));
+            inline ull size(){
+                return _data.Length();
+            };
+            inline bool is_empty(){
+                return _head == _tail;
             }
-            template<typename _Ty>inline void push(_Ty&& _Val){
-                this->_push(base::forward<_Ty>(_Val));
+            inline bool is_full(){
+                return (_tail + 1) % capacity() == _head;
             }
-            inline void _push(const T& _Val_L){
-
+            inline T get(ull pos){
+                return _data[_head + pos];
             }
-            inline void _push(const T&& _Val_R){
-
+            template<typename _Ty> inline void push(const _Ty&& _Val){
+                if (is_full()){
+                    _data.expand();
+                }
+                _data[_tail] = base::forward<const _Ty>(_Val);
+                _tail = (_tail + 1) % capacity();
             }
+        #ifdef KURZER_ENABLE_EXCEPTIONS
+            inline T pop(){
+                if (is_empty()){
+                    throw std::runtime_error("Queue is empty!");
+                };
+                T ret = _data[_head];
+                _head = (_head + 1) % capacity();
+                return ret;
+            }
+        #else
+            inline T pop(){
+                T ret = _data[_head];
+                _head = (_head + 1) % capacity();
+                return ret;
+            }
+        #endif
         };
         template<typename T> using queue = Queue<T>;
         template<typename T>class MultiDimensionalArray{
