@@ -296,22 +296,6 @@ namespace KUR{
         private:
             ull _head = 0;
             ull _tail = 0;
-            inline void _push(const T&& _Val){
-                if (is_full()){
-                    _data.expand();
-                }
-                _data[_tail] = base::move(base::forward<const T>(_Val));
-                _tail = (_tail + 1) % capacity();
-                ++_data._pos;
-            }
-            inline void _push(const T& _Val){
-                if (is_full()){
-                    _data.expand();
-                }
-                _data[_tail] = base::forward<const T>(_Val);
-                _tail = (_tail + 1) % capacity();
-                ++_data._pos;
-            }
         public:
             base::Array<T> _data = base::Array<T>(_BaseN);
             Queue(){};
@@ -340,7 +324,12 @@ namespace KUR{
                 return this->get(pos);
             };
             template<typename _Ty> inline void push(_Ty&& _Val){
-                this->_push(base::forward<_Ty>(_Val));
+                if (is_full()){
+                    _data.expand();
+                }
+                _data[_tail] = base::forward<_Ty>(_Val);
+                _tail = (_tail + 1) % capacity();
+                ++_data._pos;
             }
             inline T* begin(){
                 return _data._chunk + this->_head;
@@ -348,22 +337,16 @@ namespace KUR{
             inline T* end(){
                 return _data._chunk + _data._pos;
             };
-        #ifdef KURZER_ENABLE_EXCEPTIONS
             inline T* pop(){
+            #ifdef KURZER_ENABLE_EXCEPTIONS
                 if (is_empty()){
                     throw std::runtime_error("Queue is empty!");
                 };
+            #endif
                 T* ret = _data(_head);
                 _head = (_head + 1) % capacity();
                 return ret;
             }
-        #else
-            inline T* pop(){
-                T* ret = _data(_head);
-                _head = (_head + 1) % capacity();
-                return ret;
-            }
-        #endif
         };
         template<typename T> using queue = Queue<T,0x10>;
         //template<typename T>class MultiDimensionalArray{
