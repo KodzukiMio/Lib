@@ -114,6 +114,11 @@ namespace KUR{
                 Type* temp = _chunk;
                 ull _esize = (_size >> 1) + _size;
                 this->_chunk = Malloc(_esize);
+            #ifdef KURZER_ENABLE_EXCEPTIONS
+                if (!this->_chunk){
+                    throw std::runtime_error("bad alloc !");
+                };
+            #endif
                 for (ull i = 0; i < _size; ++i){
                     *(this->_chunk + i) = *(temp + i);
                 };
@@ -211,7 +216,7 @@ namespace KUR{
             String(const Tchar* tch){
                 this->Write(tch);
             };
-            inline void Clear(){
+            inline void Init(){
                 data.Free();
                 data.create(baseN);
             };
@@ -247,12 +252,12 @@ namespace KUR{
                 return *this;
             };
             inline String& operator=(const Tchar* tch){
-                this->Clear();
+                this->Init();
                 this->Write(tch);
                 return *this;
             };
             inline String& operator=(const String& str){
-                this->Clear();
+                this->Init();
                 this->Write(str);
                 return *this;
             };
@@ -280,6 +285,22 @@ namespace KUR{
         private:
             ull _head = 0;
             ull _tail = 0;
+            inline void _push(const T&& _Val){
+                if (is_full()){
+                    _data.expand();
+                }
+                _data[_tail] = base::move(base::forward<const T>(_Val));
+                _tail = (_tail + 1) % capacity();
+                ++_data._pos;
+            }
+            inline void _push(const T& _Val){
+                if (is_full()){
+                    _data.expand();
+                }
+                _data[_tail] = base::forward<const T>(_Val);
+                _tail = (_tail + 1) % capacity();
+                ++_data._pos;
+            }
         public:
             base::Array<T> _data = base::Array<T>(_BaseN);
             Queue(){};
@@ -295,50 +316,61 @@ namespace KUR{
             inline bool is_full(){
                 return (_tail + 1) % capacity() == _head;
             }
-            inline T get(ull pos){
+            inline T& get(const ull pos){
                 return _data[_head + pos];
             }
-            template<typename _Ty> inline void push(const _Ty&& _Val){
-                if (is_full()){
-                    _data.expand();
-                }
-                _data[_tail] = base::forward<const _Ty>(_Val);
-                _tail = (_tail + 1) % capacity();
+            inline T* get_unsafe(const ull pos){
+                return _data(_head + pos);
             }
+            inline T& operator[](const ull pos){
+                return this->get(pos);
+            };
+            inline const T& operator[](const ull pos) const{
+                return this->get(pos);
+            };
+            template<typename _Ty> inline void push(_Ty&& _Val){
+                this->_push(base::forward<_Ty>(_Val));
+            }
+            inline T* begin(){
+                return _data._chunk + this->_head;
+            };
+            inline T* end(){
+                return _data._chunk + _data._pos;
+            };
         #ifdef KURZER_ENABLE_EXCEPTIONS
-            inline T pop(){
+            inline T* pop(){
                 if (is_empty()){
                     throw std::runtime_error("Queue is empty!");
                 };
-                T ret = _data[_head];
+                T* ret = _data(_head);
                 _head = (_head + 1) % capacity();
                 return ret;
             }
         #else
-            inline T pop(){
-                T ret = _data[_head];
+            inline T* pop(){
+                T* ret = _data(_head);
                 _head = (_head + 1) % capacity();
                 return ret;
             }
         #endif
         };
-        template<typename T> using queue = Queue<T>;
-        template<typename T>class MultiDimensionalArray{
-        private:
-            //TODO
-        public:
-            ull size_ = 0;
-            base::Array<T>* elements = nullptr;
-            template<typename... Args>MultiDimensionalArray(Args... args){
-                this->size_ = sizeof...(args);
-                elements = new base::Array<T>(this->size_);
-                (elements->push(args),...);
-            };
-            ~MultiDimensionalArray(){
-                if (elements){
-                    delete elements;
-                };
-            };
-        };
+        template<typename T> using queue = Queue<T,0x10>;
+        //template<typename T>class MultiDimensionalArray{
+        //private:
+        //    //TODO
+        //public:
+        //    ull size_ = 0;
+        //    base::Array<T>* elements = nullptr;
+        //    template<typename... Args>MultiDimensionalArray(Args... args){
+        //        this->size_ = sizeof...(args);
+        //        elements = new base::Array<T>(this->size_);
+        //        (elements->push(args),...);
+        //    };
+        //    ~MultiDimensionalArray(){
+        //        if (elements){
+        //            delete elements;
+        //        };
+        //    };
+        //};
     };
 };
