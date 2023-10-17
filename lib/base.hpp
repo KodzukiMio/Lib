@@ -101,6 +101,17 @@ namespace KUR{
             static_assert(!base::is_lvalue_reference<_Tp>::value,"_Arg is not a right value.");
             return static_cast<_Tp&&>(_Arg);
         };
+        template<typename _Tp,typename _CmpPfn2Args>void insert_sort(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn){//[_Begin,_End)
+            for (_Tp* _Sorted = _Begin + 1; _Sorted < _End; ++_Sorted){
+                _Tp _Key = *_Sorted;
+                _Tp* _Pos = _Sorted - 1;
+                while (_Pos >= _Begin && _CmpPfn(&_Key,_Pos)){
+                    *(_Pos + 1) = *_Pos;
+                    --_Pos;
+                }
+                *(_Pos + 1) = _Key;
+            }
+        };
         //_KUR_TEMPLATE_TYPE_IS(T1,T2)
     #define _KUR_TEMPLATE_TYPE_IS(Type,Is_Ty)template <typename Type,typename base::enable_if<base::is_same<Type,Is_Ty>::value>::type* = nullptr>
     //_KUR_TEMPLATE_T_IS(T2)
