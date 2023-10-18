@@ -101,7 +101,47 @@ namespace KUR{
             static_assert(!base::is_lvalue_reference<_Tp>::value,"_Arg is not a right value.");
             return static_cast<_Tp&&>(_Arg);
         };
-        template<typename _Tp,typename _CmpPfn2Args>void insert_sort(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn){//[_Begin,_End)
+        template <typename _Ty>inline void swap(_Ty& _Left,_Ty& _Right){
+            _Ty _Tmp = base::move(_Left);
+            _Left = base::move(_Right);
+            _Right = base::move(_Tmp);
+        };
+
+        template<typename _Tp,typename _CmpPfn2Args>inline void sort_bubble(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn){//[_Begin,_End)    _Cmpfn(T*,T*)
+            size_t n = _End - _Begin;
+            for (size_t i = 0; i < n; ++i){
+                bool _Flag = true;
+                for (size_t j = 0; j < n - i - 1; ++j){
+                    if (_CmpPfn(_Begin + j + 1,_Begin + j)){
+                        auto _Tmp = _Begin[j];
+                        _Begin[j] = _Begin[j + 1];
+                        _Begin[j + 1] = _Tmp;
+                        _Flag = false;
+                    }
+                }
+                if (_Flag){
+                    break;
+                }
+            }
+        };
+        template<typename _Tp,typename _CmpPfn2Args>inline void sort_select(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn){//[_Begin,_End)    _Cmpfn(T*,T*)
+            _Tp* _Tmp0 = _Begin;
+            while (_Tmp0 < _End){
+                _Tp* _Tmp1 = _Tmp0;
+                _Tp* _Min_ = _Tmp1;
+                while (_Tmp1 < _End){
+                    if (_CmpPfn(_Min_,_Tmp1)){
+                        _Min_ = _Tmp1;
+                    }
+                    ++_Tmp1;
+                }
+                _Tp _Tmp = *_Min_;
+                *_Min_ = *_Tmp0;
+                *_Tmp0 = _Tmp;
+                ++_Tmp0;
+            }
+        }
+        template<typename _Tp,typename _CmpPfn2Args>inline void sort_insert(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn){//[_Begin,_End)    _Cmpfn(T*,T*)
             for (_Tp* _Sorted = _Begin + 1; _Sorted < _End; ++_Sorted){
                 _Tp _Key = *_Sorted;
                 _Tp* _Pos = _Sorted - 1;
@@ -111,6 +151,44 @@ namespace KUR{
                 }
                 *(_Pos + 1) = _Key;
             }
+        };
+        template<typename _Tp,typename _CmpPfn2Args>inline void _merge(_Tp* _Begin,_Tp* _Middle,_Tp* _End,_CmpPfn2Args _CmpPfn,_Tp* _Tmp){
+            auto _Beg = _Begin;
+            auto _Pos = _Middle;
+            auto _Tp = _Tmp;
+            while (_Beg < _Middle && _Pos < _End){
+                if (_CmpPfn(_Beg,_Pos)){
+                    *_Tp++ = *_Beg++;
+                } else{
+                    *_Tp++ = *_Pos++;
+                }
+            }
+            while (_Beg < _Middle)*_Tp++ = *_Beg++;
+            while (_Pos < _End)*_Tp++ = *_Pos++;
+            while (_Begin < _End)*_Begin++ = *_Tmp++;
+        };
+
+        template<typename _Tp,typename _CmpPfn2Args>inline void _sort_merge(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn,_Tp* _Tmp){
+            if (_End - _Begin > 1){
+                auto _Mid = _Begin + ((_End - _Begin) >> 1);
+                _sort_merge(_Begin,_Mid,_CmpPfn,_Tmp);
+                _sort_merge(_Mid,_End,_CmpPfn,_Tmp);
+                _merge(_Begin,_Mid,_End,_CmpPfn,_Tmp);
+            }
+        };
+
+        template<typename _Tp,typename _CmpPfn2Args>inline void sort_merge(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn,_Tp* _Tmp = nullptr){//[_Begin,_End),_Tmp长度为数组的长度.
+            if (!_Tmp){
+                _Tmp = new _Tp[_End - _Begin];
+            };
+            if (_Tmp){
+                _sort_merge(_Begin,_End,_CmpPfn,_Tmp);
+                delete[] _Tmp;
+                return;
+            }
+        #ifdef KURZER_ENABLE_EXCEPTIONS
+            throw std::bad_alloc();
+        #endif // KURZER_ENABLE_EXCEPTIONS
         };
         //_KUR_TEMPLATE_TYPE_IS(T1,T2)
     #define _KUR_TEMPLATE_TYPE_IS(Type,Is_Ty)template <typename Type,typename base::enable_if<base::is_same<Type,Is_Ty>::value>::type* = nullptr>
@@ -173,16 +251,22 @@ namespace KUR{
                 return *(this->_chunk + index);
             }
             inline Type* operator()(ull index){
-                if (index < this->_pos){
-                    return this->_chunk + index;
+            #ifdef KURZER_ENABLE_EXCEPTIONS
+                if (index >= this->_pos){
+                    throw std::runtime_error("Array<T> out of range !");
+                    return nullptr;
                 }
-                return nullptr;
+            #endif // KURZER_ENABLE_EXCEPTIONS
+                return this->_chunk + index;
             };
             inline const Type* operator()(ull index) const{
-                if (index < this->_pos){
-                    return this->_chunk + index;
-                };
-                return nullptr;
+            #ifdef KURZER_ENABLE_EXCEPTIONS
+                if (index >= this->_pos){
+                    throw std::runtime_error("Array<T> out of range !");
+                    return nullptr;
+                }
+            #endif // KURZER_ENABLE_EXCEPTIONS
+                return this->_chunk + index;
             };
             template<typename T> inline void push(const T value){
                 if (this->_pos == this->_size){
@@ -338,11 +422,13 @@ namespace KUR{
                 return _data._chunk + _data._pos;
             };
             inline T* pop(){
-            #ifdef KURZER_ENABLE_EXCEPTIONS
-                if (is_empty()){
+                if (this->is_empty()){
+                #ifdef KURZER_ENABLE_EXCEPTIONS
                     throw std::runtime_error("Queue is empty!");
+                #else
+                    return nullptr;
+                #endif
                 };
-            #endif
                 T* ret = _data(_head);
                 _head = (_head + 1) % capacity();
                 return ret;
