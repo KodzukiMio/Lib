@@ -9,14 +9,14 @@
 #pragma once
 #if __cplusplus < 201703L
 #error need >= C++17
-//Èç¹û°æ±¾È·Êµ>=c++17,ÄÇÃ´ÇëÔÚ±àÒëÃüÁîÐÐ¼ÓÈë:/Zc:__cplusplus
-//ÀýÈç£ºcl /EHsc /Zc:__cplusplus main.cpp 
+//ï¿½ï¿½ï¿½ï¿½æ±¾È·Êµ>=c++17,ï¿½ï¿½Ã´ï¿½ï¿½ï¿½Ú±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¼ï¿½ï¿½ï¿½:/Zc:__cplusplus
+//ï¿½ï¿½ï¿½ç£ºcl /EHsc /Zc:__cplusplus main.cpp 
 #endif
 #ifndef _kurzerbase_
 #define _kurzerbase_
 #endif
 /* #define options:
-*  (Å×³öÒì³£) KURZER_ENABLE_EXCEPTIONS
+*  (ï¿½×³ï¿½ï¿½ì³£) KURZER_ENABLE_EXCEPTIONS
 *
 */
 #ifdef NDEBUG //release
@@ -59,16 +59,9 @@ namespace KUR{
         template <typename T>struct is_same<T,T>{
             static constexpr bool value = true;
         };
-    #if __cplusplus == 202002L//c++20
-        template<typename T>struct is_character{
-            static constexpr bool value = base::is_same<T,char>::value || base::is_same<T,wchar_t>::value || base::is_same<T,char8_t>::value || base::is_same<T,char16_t>::value || base::is_same<T,char32_t>::value;
-        };
-    #endif
-    #if __cplusplus == 201703L//c++17
         template<typename T>struct is_character{
             static constexpr bool value = base::is_same<T,char>::value || base::is_same<T,wchar_t>::value || base::is_same<T,char16_t>::value || base::is_same<T,char32_t>::value;
         };
-    #endif
         template<typename _T0,typename _T1>using _Is_Same = typename base::enable_if<base::is_same<_T0,_T1>::value>::type*;
 
         //is_lvalue_reference<T>::value
@@ -155,16 +148,16 @@ namespace KUR{
         template<typename _Tp,typename _CmpPfn2Args>inline void _merge(_Tp* _Begin,_Tp* _Middle,_Tp* _End,_CmpPfn2Args _CmpPfn,_Tp* _Tmp){
             auto _Beg = _Begin;
             auto _Pos = _Middle;
-            auto _Tp = _Tmp;
+            _Tp* _Tp_ = _Tmp;
             while (_Beg < _Middle && _Pos < _End){
                 if (_CmpPfn(_Beg,_Pos)){
-                    *_Tp++ = *_Beg++;
+                    *_Tp_++ = *_Beg++;
                 } else{
-                    *_Tp++ = *_Pos++;
+                    *_Tp_++ = *_Pos++;
                 }
             }
-            while (_Beg < _Middle)*_Tp++ = *_Beg++;
-            while (_Pos < _End)*_Tp++ = *_Pos++;
+            while (_Beg < _Middle)*_Tp_++ = *_Beg++;
+            while (_Pos < _End)*_Tp_++ = *_Pos++;
             while (_Begin < _End)*_Begin++ = *_Tmp++;
         };
 
@@ -177,7 +170,7 @@ namespace KUR{
             }
         };
 
-        template<typename _Tp,typename _CmpPfn2Args>inline void sort_merge(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn,_Tp* _Tmp = nullptr){//[_Begin,_End),_Tmp³¤¶ÈÎªÊý×éµÄ³¤¶È.
+        template<typename _Tp,typename _CmpPfn2Args>inline void sort_merge(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn,_Tp* _Tmp = nullptr){//[_Begin,_End),_Cmpfn(T*,T*),_Tmpï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½Ä³ï¿½ï¿½ï¿½.
             if (!_Tmp){
                 _Tmp = new _Tp[_End - _Begin];
             };
