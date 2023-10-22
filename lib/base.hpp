@@ -7,16 +7,11 @@
 202002L - C++20
 */
 #pragma once
-#if __cplusplus < 201703L
-#error need >= C++17
-//����汾ȷʵ>=c++17,��ô���ڱ��������м���:/Zc:__cplusplus
-//���磺cl /EHsc /Zc:__cplusplus main.cpp 
-#endif
 #ifndef _kurzerbase_
 #define _kurzerbase_
 #endif
 /* #define options:
-*  (�׳��쳣) KURZER_ENABLE_EXCEPTIONS
+*  KURZER_ENABLE_EXCEPTIONS
 *
 */
 #ifdef NDEBUG //release
@@ -85,11 +80,11 @@ namespace KUR{
         //move
         template <typename T>typename base::remove_reference<T>::type&& move(T&& _Ty){
             return static_cast<typename base::remove_reference<T>::type&&>(_Ty);
-        }
+        };
         //forward<_Tp>(...);
         template<typename _Tp>constexpr _Tp&& forward(typename base::remove_reference<_Tp>::type& _Arg)noexcept{//left value
             return static_cast<_Tp&&>(_Arg);
-        }
+        };
         template<typename _Tp>constexpr _Tp&& forward(typename base::remove_reference<_Tp>::type&& _Arg)noexcept{//right value
             static_assert(!base::is_lvalue_reference<_Tp>::value,"_Arg is not a right value.");
             return static_cast<_Tp&&>(_Arg);
@@ -110,13 +105,14 @@ namespace KUR{
                         _Begin[j] = _Begin[j + 1];
                         _Begin[j + 1] = _Tmp;
                         _Flag = false;
-                    }
-                }
+                    };
+                };
                 if (_Flag){
                     break;
-                }
-            }
+                };
+            };
         };
+
         template<typename _Tp,typename _CmpPfn2Args>inline void sort_select(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn){//[_Begin,_End)    _Cmpfn(T*,T*)
             _Tp* _Tmp0 = _Begin;
             while (_Tmp0 < _End){
@@ -125,15 +121,16 @@ namespace KUR{
                 while (_Tmp1 < _End){
                     if (_CmpPfn(_Min_,_Tmp1)){
                         _Min_ = _Tmp1;
-                    }
+                    };
                     ++_Tmp1;
-                }
+                };
                 _Tp _Tmp = *_Min_;
                 *_Min_ = *_Tmp0;
                 *_Tmp0 = _Tmp;
                 ++_Tmp0;
-            }
-        }
+            };
+        };
+
         template<typename _Tp,typename _CmpPfn2Args>inline void sort_insert(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn){//[_Begin,_End)    _Cmpfn(T*,T*)
             for (_Tp* _Sorted = _Begin + 1; _Sorted < _End; ++_Sorted){
                 _Tp _Key = *_Sorted;
@@ -141,10 +138,11 @@ namespace KUR{
                 while (_Pos >= _Begin && _CmpPfn(&_Key,_Pos)){
                     *(_Pos + 1) = *_Pos;
                     --_Pos;
-                }
+                };
                 *(_Pos + 1) = _Key;
-            }
+            };
         };
+
         template<typename _Tp,typename _CmpPfn2Args>inline void _merge(_Tp* _Begin,_Tp* _Middle,_Tp* _End,_CmpPfn2Args _CmpPfn,_Tp* _Tmp){
             auto _Beg = _Begin;
             auto _Pos = _Middle;
@@ -154,35 +152,58 @@ namespace KUR{
                     *_Tp_++ = *_Beg++;
                 } else{
                     *_Tp_++ = *_Pos++;
-                }
-            }
+                };
+            };
             while (_Beg < _Middle)*_Tp_++ = *_Beg++;
             while (_Pos < _End)*_Tp_++ = *_Pos++;
             while (_Begin < _End)*_Begin++ = *_Tmp++;
         };
-
         template<typename _Tp,typename _CmpPfn2Args>inline void _sort_merge(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn,_Tp* _Tmp){
             if (_End - _Begin > 1){
                 auto _Mid = _Begin + ((_End - _Begin) >> 1);
                 _sort_merge(_Begin,_Mid,_CmpPfn,_Tmp);
                 _sort_merge(_Mid,_End,_CmpPfn,_Tmp);
                 _merge(_Begin,_Mid,_End,_CmpPfn,_Tmp);
-            }
+            };
         };
-
-        template<typename _Tp,typename _CmpPfn2Args>inline void sort_merge(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn,_Tp* _Tmp = nullptr){//[_Begin,_End),_Cmpfn(T*,T*),_Tmp����Ϊ����ĳ���.
+        template<typename _Tp,typename _CmpPfn2Args>inline void sort_merge(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn,_Tp* _Tmp = nullptr){//[_Begin,_End),_Cmpfn(T*,T*),_Tmp length = arr
+            bool _Mem = false;
             if (!_Tmp){
                 _Tmp = new _Tp[_End - _Begin];
+                _Mem = true;
             };
             if (_Tmp){
                 _sort_merge(_Begin,_End,_CmpPfn,_Tmp);
-                delete[] _Tmp;
+                if (_Mem){
+                    delete[] _Tmp;
+                };
                 return;
-            }
+            };
         #ifdef KURZER_ENABLE_EXCEPTIONS
             throw std::bad_alloc();
         #endif // KURZER_ENABLE_EXCEPTIONS
         };
+
+        template<typename _Tp,typename _CmpPfn2Args>inline _Tp* _partition(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn){
+            _Tp* _P0 = _Begin;
+            _Tp* _Pos = _End - 1;
+            for (_Tp* _P1 = _Begin; _P1 < _End; ++_P1){
+                if (_CmpPfn(_P1,_Pos)){
+                    base::swap(*_P0,*_P1);
+                    ++_P0;
+                };
+            };
+            base::swap(*_P0,*_Pos);
+            return _P0;
+        };
+        template<typename _Tp,typename _CmpPfn2Args>inline void sort_quick(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn){//[_Begin,_End)    _Cmpfn(T*,T*)
+            if (_End > _Begin){
+                _Tp* _Pos = _partition(_Begin,_End,_CmpPfn);
+                sort_quick(_Begin,_Pos,_CmpPfn);
+                sort_quick(_Pos + 1,_End,_CmpPfn);
+            };
+        };
+
         //_KUR_TEMPLATE_TYPE_IS(T1,T2)
     #define _KUR_TEMPLATE_TYPE_IS(Type,Is_Ty)template <typename Type,typename base::enable_if<base::is_same<Type,Is_Ty>::value>::type* = nullptr>
     //_KUR_TEMPLATE_T_IS(T2)
@@ -239,16 +260,16 @@ namespace KUR{
             };
             inline Type& operator[](ull index){
                 return *(this->_chunk + index);
-            }
+            };
             inline const Type& operator[](ull index) const{
                 return *(this->_chunk + index);
-            }
+            };
             inline Type* operator()(ull index){
             #ifdef KURZER_ENABLE_EXCEPTIONS
                 if (index >= this->_pos){
                     throw std::runtime_error("Array<T> out of range !");
                     return nullptr;
-                }
+                };
             #endif // KURZER_ENABLE_EXCEPTIONS
                 return this->_chunk + index;
             };
@@ -257,7 +278,7 @@ namespace KUR{
                 if (index >= this->_pos){
                     throw std::runtime_error("Array<T> out of range !");
                     return nullptr;
-                }
+                };
             #endif // KURZER_ENABLE_EXCEPTIONS
                 return this->_chunk + index;
             };
@@ -275,10 +296,10 @@ namespace KUR{
                 if (_chunk){
                     delete[] _chunk;
                     _chunk = nullptr;
-                }
+                };
                 _size = 0;
                 _pos = 0;
-            }
+            };
             inline Type* begin(){ return _chunk; };
             inline Type* end(){ return this->_chunk + _pos; };
             inline Type* pop(){
@@ -328,7 +349,7 @@ namespace KUR{
                 while (*_tch){
                     this->data.push(*_tch);
                     ++_tch;
-                }
+                };
                 return *this;
             };
             inline String& Write(const String& str){
@@ -378,22 +399,22 @@ namespace KUR{
             Queue(){};
             inline ull capacity(){
                 return _data.MaxSize();
-            }
+            };
             inline ull size(){
                 return _data.Length();
             };
             inline bool is_empty(){
                 return _head == _tail;
-            }
+            };
             inline bool is_full(){
                 return (_tail + 1) % capacity() == _head;
-            }
+            };
             inline T& get(const ull pos){
                 return _data[_head + pos];
-            }
+            };
             inline T* get_unsafe(const ull pos){
                 return _data(_head + pos);
-            }
+            };
             inline T& operator[](const ull pos){
                 return this->get(pos);
             };
@@ -403,11 +424,11 @@ namespace KUR{
             template<typename _Ty> inline void push(_Ty&& _Val){
                 if (is_full()){
                     _data.expand();
-                }
+                };
                 _data[_tail] = base::forward<_Ty>(_Val);
                 _tail = (_tail + 1) % capacity();
                 ++_data._pos;
-            }
+            };
             inline T* begin(){
                 return _data._chunk + this->_head;
             };
@@ -425,7 +446,7 @@ namespace KUR{
                 T* ret = _data(_head);
                 _head = (_head + 1) % capacity();
                 return ret;
-            }
+            };
         };
         template<typename T> using queue = Queue<T,0x10>;
         //template<typename T>class MultiDimensionalArray{
