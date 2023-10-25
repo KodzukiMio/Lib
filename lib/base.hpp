@@ -28,12 +28,32 @@ namespace KUR{
     namespace base{
         //size_t
         typedef unsigned long long ull;
+        typedef int _Sequence;
+        struct sort_sequence{
+            static constexpr const base::_Sequence upper = 0;
+            static constexpr const base::_Sequence lower = 1;
+        };
         template<typename Tchar> inline static ull strlen(const Tchar* str){
             const Tchar* p = str;
             while (*p){
                 ++p;
             };
             return p - str;
+        };
+        template<typename T>inline T max(T _Left,T _Right){
+            return ((_Left) < (_Right)) ? (_Right) : (_Left);
+        };
+        template<typename T>inline T min(T _Left,T _Right){
+            return ((_Left) < (_Right)) ? (_Left) : (_Right);
+        };
+        template <typename T>void reverse(T* _Begin,T* _End){
+            while (_Begin < _End){
+                --_End;
+                T _Tmp = *_Begin;
+                *_Begin = *_End;
+                *_End = _Tmp;
+                ++_Begin;
+            };
         };
         template<class Tchar> class CharT{
         public:
@@ -57,8 +77,14 @@ namespace KUR{
         template<typename T>struct is_character{
             static constexpr bool value = base::is_same<T,char>::value || base::is_same<T,wchar_t>::value || base::is_same<T,char16_t>::value || base::is_same<T,char32_t>::value;
         };
+        template<typename T>struct is_integral{
+            static constexpr bool value = base::is_same<T,bool>::value || base::is_same<T,char>::value || base::is_same<T,signed char>::value || base::is_same<T,unsigned char>::value || base::is_same<T,wchar_t>::value
+            #ifdef __cpp_char8_t
+                || base::is_same<T,char8_t>::value
+            #endif // __cpp_char8_t
+                || base::is_same<T,char16_t>::value || base::is_same<T,char32_t>::value || base::is_same<T,short>::value || base::is_same<T,unsigned short>::value || base::is_same<T,int>::value || base::is_same<T,unsigned int>::value || base::is_same<T,long>::value || base::is_same<T,unsigned long>::value || base::is_same<T,long long>::value || base::is_same<T,unsigned long long>::value;
+        };
         template<typename _T0,typename _T1>using _Is_Same = typename base::enable_if<base::is_same<_T0,_T1>::value>::type*;
-
         //is_lvalue_reference<T>::value
         template<typename T>struct is_lvalue_reference{
             static const bool value = false;
@@ -94,7 +120,6 @@ namespace KUR{
             _Left = base::move(_Right);
             _Right = base::move(_Tmp);
         };
-
         template<typename _Tp,typename _CmpPfn2Args>inline void sort_bubble(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn){//[_Begin,_End)    _Cmpfn(T*,T*)
             size_t n = _End - _Begin;
             for (size_t i = 0; i < n; ++i){
@@ -112,7 +137,6 @@ namespace KUR{
                 };
             };
         };
-
         template<typename _Tp,typename _CmpPfn2Args>inline void sort_select(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn){//[_Begin,_End)    _Cmpfn(T*,T*)
             _Tp* _Tmp0 = _Begin;
             while (_Tmp0 < _End){
@@ -130,7 +154,6 @@ namespace KUR{
                 ++_Tmp0;
             };
         };
-
         template<typename _Tp,typename _CmpPfn2Args>inline void sort_insert(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn){//[_Begin,_End)    _Cmpfn(T*,T*)
             for (_Tp* _Sorted = _Begin + 1; _Sorted < _End; ++_Sorted){
                 _Tp _Key = *_Sorted;
@@ -142,7 +165,6 @@ namespace KUR{
                 *(_Pos + 1) = _Key;
             };
         };
-
         template<typename _Tp,typename _CmpPfn2Args>inline void _merge(_Tp* _Begin,_Tp* _Middle,_Tp* _End,_CmpPfn2Args _CmpPfn,_Tp* _Tmp){
             auto _Beg = _Begin;
             auto _Pos = _Middle;
@@ -183,7 +205,6 @@ namespace KUR{
             throw std::bad_alloc();
         #endif // KURZER_ENABLE_EXCEPTIONS
         };
-
         template<typename _Tp,typename _CmpPfn2Args>inline _Tp* _partition(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn){
             _Tp* _P0 = _Begin;
             _Tp* _Pos = _End - 1;
@@ -203,7 +224,42 @@ namespace KUR{
                 sort_quick(_Pos + 1,_End,_CmpPfn);
             };
         };
-
+        template<typename Type>class Array;
+        template<typename _Tp>inline _Tp _sort_count_size(_Tp* _Begin,_Tp* _End,_Tp& _Out_Lower){
+            _Tp _Lower = *_Begin;
+            _Tp _Upper = *_Begin;
+            while (_Begin < _End){
+                _Lower = base::min(*_Begin,_Lower);
+                _Upper = base::max(*_Begin,_Upper);
+                ++_Begin;
+            };
+            _Out_Lower = _Lower;
+            return (_Upper - _Lower + 1);
+        };
+        template<typename _Tp,typename  base::enable_if<base::is_integral<_Tp>::value>::type* = nullptr>inline void sort_count(_Tp* _Begin,_Tp* _End,base::_Sequence _Seq = base::sort_sequence::upper){//[_Begin,_End)
+            _Tp _Lower = 0;
+            auto _Beg = _Begin;
+            auto _Beg_R = _Begin;
+            auto _Size = _sort_count_size<_Tp>(_Begin,_End,_Lower);
+            Array<_Tp> _Tmp(_Size);
+            _Tmp.init(0,_Size);
+            while (_Begin < _End){
+                ++_Tmp[(*_Begin - _Lower)];
+                ++_Begin;
+            };
+            for (ull i = 0; i < _Size; ++i){
+                if (_Tmp[i]){
+                    while (_Tmp[i]){
+                        *_Beg = i + _Lower;
+                        ++_Beg;
+                        --_Tmp[i];
+                    };
+                };
+            };
+            if (_Seq){
+                base::reverse(_Beg_R,_End);
+            };
+        };
         //_KUR_TEMPLATE_TYPE_IS(T1,T2)
     #define _KUR_TEMPLATE_TYPE_IS(Type,Is_Ty)template <typename Type,typename base::enable_if<base::is_same<Type,Is_Ty>::value>::type* = nullptr>
     //_KUR_TEMPLATE_T_IS(T2)
@@ -316,6 +372,18 @@ namespace KUR{
             };
             inline ull MaxSize(){ return this->_size; };
             inline Type* GetData(){ return this->_chunk; };
+            inline void init(Type _Init_Val,ull _Size = 0){
+                if (_Size){
+                    for (ull i = 0; i < _Size; ++i){
+                        *(this->_chunk + i) = _Init_Val;
+                    };
+                    return;
+                };
+                auto _Len = this->Length();
+                for (ull i = 0; i < _Len; ++i){
+                    *(this->_chunk + i) = _Init_Val;
+                };
+            };
         };
         template<typename T>using array = Array<T>;
         template<typename Tchar,ull baseN = 0x10,typename base::enable_if<base::is_character<Tchar>::value>::type* = nullptr>class String{
@@ -449,22 +517,5 @@ namespace KUR{
             };
         };
         template<typename T> using queue = Queue<T,0x10>;
-        //template<typename T>class MultiDimensionalArray{
-        //private:
-        //    //TODO
-        //public:
-        //    ull size_ = 0;
-        //    base::Array<T>* elements = nullptr;
-        //    template<typename... Args>MultiDimensionalArray(Args... args){
-        //        this->size_ = sizeof...(args);
-        //        elements = new base::Array<T>(this->size_);
-        //        (elements->push(args),...);
-        //    };
-        //    ~MultiDimensionalArray(){
-        //        if (elements){
-        //            delete elements;
-        //        };
-        //    };
-        //};
     };
 };
