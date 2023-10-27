@@ -28,35 +28,28 @@ namespace KUR{
     namespace base{
         //size_t
         typedef unsigned long long ull;
+        template <class _Ty,_Ty _Val>struct integral_constant{
+            static constexpr _Ty value = _Val;
+            using value_type = _Ty;
+            using type = integral_constant;
+            constexpr operator value_type() const noexcept{
+                return value;
+            };
+            constexpr value_type operator()() const noexcept{//function
+                return value;
+            };
+        };
+        template <bool _Val>using bool_constant = integral_constant<bool,_Val>;
+        using true_type = bool_constant<true>;
+        using false_type = bool_constant<false>;
+        template <typename... _Types>using void_t = void;
         typedef int _Sequence;
         struct sort_sequence{
             static constexpr const base::_Sequence upper = 0;
             static constexpr const base::_Sequence lower = 1;
         };
-        template<typename Tchar> inline static ull strlen(const Tchar* str){
-            const Tchar* p = str;
-            while (*p){
-                ++p;
-            };
-            return p - str;
-        };
-        template<typename T>inline T max(T _Left,T _Right){
-            return ((_Left) < (_Right)) ? (_Right) : (_Left);
-        };
-        template<typename T>inline T min(T _Left,T _Right){
-            return ((_Left) < (_Right)) ? (_Left) : (_Right);
-        };
-        template <typename T>void reverse(T* _Begin,T* _End){
-            while (_Begin < _End){
-                --_End;
-                T _Tmp = *_Begin;
-                *_Begin = *_End;
-                *_End = _Tmp;
-                ++_Begin;
-            };
-        };
-        template<class Tchar> class CharT{
-        public:
+        template <typename>inline constexpr bool _Always_false = false;
+        template<typename Tchar> struct CharT{
         #ifdef _XSTRING_
             using char_t = std::basic_string<Tchar,std::char_traits<Tchar>,std::allocator<Tchar>>;
         #endif // _XSTRING_
@@ -65,8 +58,9 @@ namespace KUR{
         #endif // _IOSTREAM_
         };
         //typename base::enable_if<TRUE?>::type* = nullptr
-        template<bool condition,class T = void>struct enable_if{};
-        template<class T>struct enable_if<true,T>{ typedef T type; };
+        template<bool condition,typename T = void>struct enable_if{};
+        template<typename T>struct enable_if<true,T>{ typedef T type; };
+        template <bool _Test,typename _Ty = void>using enable_if_t = enable_if<_Test,_Ty>::type;
         //is_same<T1,T2>::value
         template <typename T,typename U>struct is_same{
             static constexpr bool value = false;
@@ -86,23 +80,15 @@ namespace KUR{
         };
         template<typename _T0,typename _T1>using _Is_Same = typename base::enable_if<base::is_same<_T0,_T1>::value>::type*;
         //is_lvalue_reference<T>::value
-        template<typename T>struct is_lvalue_reference{
-            static const bool value = false;
-        };
-        template<typename T>struct is_lvalue_reference<T&>{
-            static const bool value = true;
-        };
+        template<typename T>struct is_lvalue_reference:base::false_type{};
+        template<typename T>struct is_lvalue_reference<T&>:base::true_type{};
         //is_rvalue_reference<T>::value
-        template<typename T>struct is_rvalue_reference{
-            static const bool value = false;
-        };
-        template<typename T>struct is_rvalue_reference<T&&>{
-            static const bool value = true;
-        };
+        template<typename T>struct is_rvalue_reference:base::false_type{};
+        template<typename T>struct is_rvalue_reference<T&&>:base::true_type{};
         //remove_reference<T>::type
-        template<typename T> struct remove_reference{ typedef T type; };
-        template<typename T> struct remove_reference<T&>{ typedef T type; };
-        template<typename T> struct remove_reference<T&&>{ typedef T type; };
+        template<typename _Ty> struct remove_reference{ typedef _Ty type; };
+        template<typename _Ty> struct remove_reference<_Ty&>{ typedef _Ty type; };
+        template<typename _Ty> struct remove_reference<_Ty&&>{ typedef _Ty type; };
         //move
         template <typename T>typename base::remove_reference<T>::type&& move(T&& _Ty){
             return static_cast<typename base::remove_reference<T>::type&&>(_Ty);
@@ -115,10 +101,67 @@ namespace KUR{
             static_assert(!base::is_lvalue_reference<_Tp>::value,"_Arg is not a right value.");
             return static_cast<_Tp&&>(_Arg);
         };
+        template <typename _Ty,typename = void>struct _Add_reference{ //no-ref
+            using _Lvalue = _Ty;
+            using _Rvalue = _Ty;
+        };
+        template <typename _Ty>struct _Add_reference<_Ty,void_t<_Ty&>>{ //ref
+            using _Lvalue = _Ty&;
+            using _Rvalue = _Ty&&;
+        };
+        template <typename _Ty>struct add_lvalue_reference{
+            using type = typename _Add_reference<_Ty>::_Lvalue;
+        };
+        template <typename _Ty>using add_lvalue_reference_t = typename _Add_reference<_Ty>::_Lvalue;
+        template <typename _Ty>struct add_rvalue_reference{
+            using type = typename _Add_reference<_Ty>::_Rvalue;
+        };
+        template <typename _Ty>using add_rvalue_reference_t = typename _Add_reference<_Ty>::_Rvalue;
+        template<typename _Ty>typename base::add_rvalue_reference<_Ty>::type declval() noexcept{
+            static_assert(_Always_false<_Ty>,"declval should not be called!");
+        };
+        template<typename _Ty1,typename _Ty2,typename = void>struct allow_equal_operator:base::false_type{};
+        template<typename _Ty1,typename _Ty2>struct allow_equal_operator<_Ty1,_Ty2,base::void_t<decltype(base::declval<_Ty1>() == base::declval<_Ty2>())>>:base::true_type{};
+        template<typename Tchar> inline static ull strlen(const Tchar* str){
+            const Tchar* p = str;
+            while (*p){
+                ++p;
+            };
+            return p - str;
+        };
+        template<typename T>inline T max(T _Left,T _Right){
+            return ((_Left) < (_Right)) ? (_Right) : (_Left);
+        };
+        template<typename T>inline T min(T _Left,T _Right){
+            return ((_Left) < (_Right)) ? (_Left) : (_Right);
+        };
+        template <typename _Itr>void reverse(_Itr _Begin,_Itr _End){
+            while (_Begin != _End){
+                --_End;
+                _Itr _Tmp = *_Begin;
+                *_Begin = *_End;
+                *_End = _Tmp;
+                ++_Begin;
+            };
+        };
         template <typename _Ty>inline void swap(_Ty& _Left,_Ty& _Right){
             _Ty _Tmp = base::move(_Left);
             _Left = base::move(_Right);
             _Right = base::move(_Tmp);
+        };
+        template<typename _Ty,typename _Itr,typename...Args>inline _Itr find(_Itr _Begin,_Itr _End,_Ty _CmpPfn,Args... _CmpArgs){//_CmpPfn(itr,_CmpArgs...)
+            while (_Begin != _End){
+                if (_CmpPfn(*_Begin,base::forward<Args>(_CmpArgs)...))return _Begin;
+                ++_Begin;
+            }
+            return _End;
+        };
+        template<typename _Ty,typename _Itr,typename base::enable_if_t<base::allow_equal_operator<_Ty,decltype(*base::declval<_Itr>())>::value>* = nullptr>inline _Itr find(_Itr _Begin,_Itr _End,const _Ty _Cmp_Val){//need operator ==
+            while (_Begin != _End){
+                if (*_Begin == base::move(_Cmp_Val))return _Begin;
+                ++_Begin;
+            }
+            return _End;
         };
         template<typename _Tp,typename _CmpPfn2Args>inline void sort_bubble(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn){//[_Begin,_End)    _Cmpfn(T*,T*)
             size_t n = _End - _Begin;
@@ -206,8 +249,13 @@ namespace KUR{
         #endif // KURZER_ENABLE_EXCEPTIONS
         };
         template<typename _Tp,typename _CmpPfn2Args>inline _Tp* _partition(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn){
+            _Tp* _Mid = _Begin + ((_End - _Begin) >> 1);
+            _Tp* _Ed = _End - 1;
+            if (_CmpPfn(_Mid,_Begin)) base::swap(*_Mid,*_Begin);
+            if (_CmpPfn(_Ed,_Begin)) base::swap(*_Ed,*_Begin);
+            if (_CmpPfn(_Ed,_Mid)) base::swap(*_Ed,*_Mid);
             _Tp* _P0 = _Begin;
-            _Tp* _Pos = _End - 1;
+            _Tp* _Pos = _Mid;
             for (_Tp* _P1 = _Begin; _P1 < _End; ++_P1){
                 if (_CmpPfn(_P1,_Pos)){
                     base::swap(*_P0,*_P1);
@@ -236,7 +284,7 @@ namespace KUR{
             _Out_Lower = _Lower;
             return (_Upper - _Lower + 1);
         };
-        template<typename _Tp,typename  base::enable_if<base::is_integral<_Tp>::value>::type* = nullptr>inline void sort_count(_Tp* _Begin,_Tp* _End,base::_Sequence _Seq = base::sort_sequence::upper){//[_Begin,_End)
+        template<typename _Tp,typename  base::enable_if_t<base::is_integral<_Tp>::value>* = nullptr>inline void sort_count(_Tp* _Begin,_Tp* _End,base::_Sequence _Seq = base::sort_sequence::upper){//[_Begin,_End)
             _Tp _Lower = 0;
             auto _Beg = _Begin;
             auto _Beg_R = _Begin;
@@ -261,7 +309,7 @@ namespace KUR{
             };
         };
         //_KUR_TEMPLATE_TYPE_IS(T1,T2)
-    #define _KUR_TEMPLATE_TYPE_IS(Type,Is_Ty)template <typename Type,typename base::enable_if<base::is_same<Type,Is_Ty>::value>::type* = nullptr>
+    #define _KUR_TEMPLATE_TYPE_IS(Type,Is_Ty)template <typename Type,typename base::enable_if_t<base::is_same<Type,Is_Ty>::value>* = nullptr>
     //_KUR_TEMPLATE_T_IS(T2)
     #define _KUR_TEMPLATE_T_IS(Is_Ty) _KUR_TEMPLATE_TYPE_IS(T,Is_Ty) 
         template<typename Type>class Array{
@@ -373,20 +421,17 @@ namespace KUR{
             inline ull MaxSize(){ return this->_size; };
             inline Type* GetData(){ return this->_chunk; };
             inline void init(Type _Init_Val,ull _Size = 0){
+                ull _Len = this->Length();
                 if (_Size){
-                    for (ull i = 0; i < _Size; ++i){
-                        *(this->_chunk + i) = _Init_Val;
-                    };
-                    return;
+                    _Len = _Size;
                 };
-                auto _Len = this->Length();
                 for (ull i = 0; i < _Len; ++i){
                     *(this->_chunk + i) = _Init_Val;
                 };
             };
         };
         template<typename T>using array = Array<T>;
-        template<typename Tchar,ull baseN = 0x10,typename base::enable_if<base::is_character<Tchar>::value>::type* = nullptr>class String{
+        template<typename Tchar,ull baseN = 0x10,typename base::enable_if_t<base::is_character<Tchar>::value>* = nullptr>class String{
         public:
             base::Array<Tchar> data;
             String(){};
@@ -517,5 +562,38 @@ namespace KUR{
             };
         };
         template<typename T> using queue = Queue<T,0x10>;
+        template<typename T>class BinaryTree{//TODO
+        public:
+            using value_type = T;
+            class Node{
+            public:
+                Array<T> data;
+                ull index = 0;
+                Node* _R_node = nullptr;
+                Node* _L_node = nullptr;
+                template<typename...Args>inline void push(Args... arg){ data.push(T(arg...)); };
+                template<typename Ty,typename...Args>inline T* find(Ty _CmpPfn,Args... _CmpArgs){//_CmpPfn(*itr,_CmpArgs...)
+                    return base::find(data.begin(),data.end(),_CmpPfn,base::forward<Args>(_CmpArgs)...);
+                };
+                template<typename Ty,typename base::enable_if_t<base::allow_equal_operator<Ty,T>::value>* = nullptr>inline T* find(const Ty _Cmp_Val){//need operator ==
+                    return base::find(data.begin(),data.end(),base::forward<const Ty>(_Cmp_Val));
+                };
+                inline auto eof(){ return this->data.end(); };
+                template<typename...Args> Node(Args... arg){ this->push(arg...); };
+            };
+            ull _size = 0;
+            inline ull size(){ return this->_size; };
+            BinaryTree(){};
+            Node* _base_node = nullptr;
+            template<typename...Args> inline void init(Args... arg){
+                _base_node = new Node(base::forward<Args>(arg)...);
+                ++_size;
+            }
+            ~BinaryTree(){
+                if (_base_node){
+                    delete _base_node;
+                };
+            };
+        };
     };
 };
