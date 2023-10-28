@@ -1,4 +1,4 @@
-//2023-2024
+﻿//2023-2024
 /*
 199711L - C++98 | C++03
 201103L - C++11
@@ -314,6 +314,7 @@ namespace KUR{
     #define _KUR_TEMPLATE_T_IS(Is_Ty) _KUR_TEMPLATE_TYPE_IS(T,Is_Ty) 
         template<typename Type>class Array{
         public:
+            bool _allow_del = true;
             Type* _chunk = 0;
             ull _size = 0;
             ull _pos = 0;
@@ -345,6 +346,24 @@ namespace KUR{
                 for (ull i = 0; i < _pos; ++i){
                     _chunk[i] = other._chunk[i];
                 };
+            };
+            Array(Array&& other) noexcept: _allow_del(other._allow_del),_chunk(other._chunk),_size(other._size),_pos(other._pos){
+                other._chunk = nullptr;
+                other._size = 0;
+                other._pos = 0;
+            };
+            Array& operator=(Array&& other) noexcept{
+                if (this != &other){
+                    delete[] _chunk;
+                    _allow_del = other._allow_del;
+                    _chunk = other._chunk;
+                    _size = other._size;
+                    _pos = other._pos;
+                    other._chunk = nullptr;
+                    other._size = 0;
+                    other._pos = 0;
+                };
+                return *this;
             };
             Array& operator=(const Array& other){
                 if (this != &other){
@@ -393,6 +412,13 @@ namespace KUR{
                 *(this->_chunk + _pos) = value;
                 ++_pos;
             };
+            template<typename T> inline void push_back(const T value){
+                if (this->_pos == this->_size){
+                    expand();
+                };
+                *(this->_chunk + _pos) = value;
+                ++_pos;
+            };
             inline bool is_full(){
                 return this->_pos + 1 == this->_size;
             };
@@ -414,10 +440,23 @@ namespace KUR{
             };
             inline ull Length()const{ return this->_pos; };
             ~Array(){
-                if (_chunk){
+                if (_chunk && _allow_del){
                     delete[] _chunk;
                 };
             };
+            inline Type* erase(ull index){
+            #ifdef KURZER_ENABLE_EXCEPTIONS
+                if (index >= _pos){
+                    throw std::runtime_error("Array<T> out of range !");
+                }
+            #endif // KURZER_ENABLE_EXCEPTIONS
+                for (ull i = index; i < _pos - 1; ++i){
+                    _chunk[i] = _chunk[i + 1];
+                }
+                --_pos;
+                return _chunk + index;
+            };
+            inline ull size()const{ return this->_pos; };
             inline ull MaxSize(){ return this->_size; };
             inline Type* GetData(){ return this->_chunk; };
             inline void init(Type _Init_Val,ull _Size = 0){
@@ -428,6 +467,14 @@ namespace KUR{
                 for (ull i = 0; i < _Len; ++i){
                     *(this->_chunk + i) = _Init_Val;
                 };
+            };
+            inline Type* find(const Type& value){
+                for (ull i = 0; i < _pos; ++i){
+                    if (_chunk[i] == value){
+                        return &_chunk[i];
+                    };
+                };
+                return end();
             };
         };
         template<typename T>using array = Array<T>;
@@ -562,38 +609,191 @@ namespace KUR{
             };
         };
         template<typename T> using queue = Queue<T,0x10>;
-        template<typename T>class BinaryTree{//TODO
+        template<typename T> class base_node{
+        public:
+            Array<T> data;
+            template<typename...Args>inline void push(Args... arg){ data.push(T(arg...)); };//value | constructor
+            template<typename Ty,typename...Args>inline T* find(Ty _CmpPfn,Args... _CmpArgs){//_CmpPfn(*itr,_CmpArgs...)
+                return base::find(data.begin(),data.end(),_CmpPfn,base::forward<Args>(_CmpArgs)...);
+            };
+            template<typename Ty,typename base::enable_if_t<base::allow_equal_operator<Ty,T>::value>* = nullptr>inline T* find(const Ty _Cmp_Val){//need operator ==
+                return base::find(data.begin(),data.end(),base::forward<const Ty>(_Cmp_Val));
+            };
+            inline auto eof(){ return this->data.end(); };
+            template<typename...Args> base_node(Args... arg){ this->push(arg...); };
+            base_node(){};
+        };
+        template<typename _Rt,typename... _Args>class _simple_function{
+        public:
+            using _Fn = _Rt(*)(_Args...);
+            using _Ret = _Rt;
+            _Fn _pfn = nullptr;
+            _simple_function(_Fn _Pfn):_pfn(_Pfn){};
+            _simple_function(){};
+            _Rt operator()(_Args...args){
+                return this->_pfn(base::forward<_Args>(args)...);
+            };
+        };
+        template<typename T,typename... _Args>class Tree:public _simple_function<bool,_Args...>{//TODO
         public:
             using value_type = T;
-            class Node{
+            class Node:public base::base_node<T>{
             public:
-                Array<T> data;
-                ull index = 0;
-                Node* _R_node = nullptr;
-                Node* _L_node = nullptr;
-                template<typename...Args>inline void push(Args... arg){ data.push(T(arg...)); };
-                template<typename Ty,typename...Args>inline T* find(Ty _CmpPfn,Args... _CmpArgs){//_CmpPfn(*itr,_CmpArgs...)
-                    return base::find(data.begin(),data.end(),_CmpPfn,base::forward<Args>(_CmpArgs)...);
+                bool _allow_del = true;
+                Array<Node*>nodes;
+                void del_nodes(){
+                    if (_allow_del){
+                        for (auto i : nodes){
+                            if (i)delete i;
+                        };
+                    };
                 };
-                template<typename Ty,typename base::enable_if_t<base::allow_equal_operator<Ty,T>::value>* = nullptr>inline T* find(const Ty _Cmp_Val){//need operator ==
-                    return base::find(data.begin(),data.end(),base::forward<const Ty>(_Cmp_Val));
+                ~Node(){
+                    this->del_nodes();
                 };
-                inline auto eof(){ return this->data.end(); };
-                template<typename...Args> Node(Args... arg){ this->push(arg...); };
             };
             ull _size = 0;
-            inline ull size(){ return this->_size; };
-            BinaryTree(){};
             Node* _base_node = nullptr;
+            void* _arg_data = nullptr;
+            inline ull size(){ return this->_size; };
+            Tree(bool(*_Pfn)(_Args...)): _simple_function<bool,_Args...>(_Pfn){};
+            Tree(){};
             template<typename...Args> inline void init(Args... arg){
                 _base_node = new Node(base::forward<Args>(arg)...);
                 ++_size;
             }
-            ~BinaryTree(){
+            template<typename T> inline void set_data(const T* dat){
+                _arg_data = (void*)dat;
+            };
+            inline bool call(base::Tree<T,_Args...>::Node* node){
+                return this->_pfn(_arg_data,node);
+            };
+            template<typename...Args>inline void insert(Node* parent_node,Args... arg){
+                if (!parent_node){
+                    if (!_size){
+                        this->init(base::forward<Args>(arg)...);
+                    } else{
+                    #ifdef KURZER_ENABLE_EXCEPTIONS
+                        throw std::runtime_error("Parent node cannot be null");
+                    #endif
+                        return;
+                    };
+                } else{
+                    parent_node->data.push(T(base::forward<Args>(arg)...));
+                    ++_size;
+                };
+            };
+            template<typename...Args>inline void insert_node(Node* parent_node,Args... arg){
+                if (!parent_node){
+                    if (!_size){
+                        this->init(base::forward<Args>(arg)...);
+                    } else{
+                    #ifdef KURZER_ENABLE_EXCEPTIONS
+                        throw std::runtime_error("Parent node cannot be null");
+                    #endif
+                        return;
+                    };
+                } else{
+                    Node* newNode = new Node(base::forward<Args>(arg)...);
+                    parent_node->nodes.push(newNode);
+                    ++_size;
+                };
+            };
+            void traverse(Node* node,void(*_Pfn)(Node*)){//void _Pfn(KUR::base::_tree_search_t<T>* node)
+                _Pfn(node);
+                for (auto child : node->nodes){
+                    traverse(child,_Pfn);
+                };
+            };
+            Node* find_node(const T& value,Node* node,Node** parentNode){
+                if (node->data.find(value) != node->data.end()){
+                    return node;
+                }
+                for (auto child : node->nodes){
+                    *parentNode = node;
+                    Node* foundNode = find_node(value,child);
+                    if (foundNode != nullptr){
+                        return foundNode;
+                    };
+                };
+                return nullptr;
+            };
+            Node* find_node(const T& value,Node* node){
+                if (node->data.find(value) != node->data.end()){
+                    return node;
+                }
+                for (auto child : node->nodes){
+                    Node* foundNode = find_node(value,child);
+                    if (foundNode != nullptr){
+                        return foundNode;
+                    };
+                };
+                return nullptr;
+            };
+            template<typename _Ty,typename..._F_Args>inline Node* find_node(_Ty _CmpPfn,_F_Args... _CmpArgs,Node* node,Node** parentNode){
+                if (_CmpPfn(node,base::forward<_F_Args>(_CmpArgs)...)){
+                    return node;
+                };
+                for (auto child : node->nodes){
+                    *parentNode = node;
+                    Node* foundNode = find_node(_CmpPfn,base::forward<_F_Args>(_CmpArgs)...,child);
+                    if (foundNode != nullptr){
+                        return foundNode;
+                    };
+                };
+                return nullptr;
+            };
+            template<typename _Ty,typename..._F_Args>inline Node* find_node(_Ty _CmpPfn,_F_Args... _CmpArgs,Node* node){
+                if (_CmpPfn(node,base::forward<_F_Args>(_CmpArgs)...)){
+                    return node;
+                };
+                for (auto child : node->nodes){
+                    Node* foundNode = find_node(_CmpPfn,base::forward<_F_Args>(_CmpArgs)...,child);
+                    if (foundNode != nullptr){
+                        return foundNode;
+                    };
+                };
+                return nullptr;
+            };
+            void delete_node(const T& value){//not del root
+                Node* parentNode = nullptr;
+                Node* nodeToDelete = find_node(value,_base_node,&parentNode);
+                if (nodeToDelete == nullptr){
+                #ifdef KURZER_ENABLE_EXCEPTIONS
+                    throw std::runtime_error("Node not found");
+                #endif
+                    return;
+                };
+                for (ull i = 0; i < nodeToDelete->nodes.size(); ++i){
+                    parentNode->nodes.push(nodeToDelete->nodes[i]);
+                }
+                nodeToDelete->_allow_del = false;
+                parentNode->nodes.erase(parentNode->nodes.find(nodeToDelete) - parentNode->nodes.begin());
+                delete nodeToDelete;
+                --_size;
+            };
+            ~Tree(){
                 if (_base_node){
                     delete _base_node;
                 };
             };
         };
+        template<typename T>class _simple_auto_ptr{
+        public:
+            T* _Ptr = nullptr;
+            _simple_auto_ptr(T* ptr):_Ptr(ptr){};
+            ~_simple_auto_ptr(){
+                if (_Ptr)delete _Ptr;
+            };
+            T& operator*(){
+                return *_Ptr;
+            };
+        };
+        template<typename T>using bt_node = base::Tree<T,void*,T>::Node;
+        template<typename T>using _tree_search_t = base::Tree<T,void*,base::bt_node<T>*>::Node;
+        template<typename T,typename... _Args>auto make_tree(bool(*_Pfn)(_Args...)){//bool function(void*,base::bt_node<T>*) 
+            return Tree<T,_Args...>(_Pfn);
+        };
+        template<typename T>using tree = Tree<T,void*,base::bt_node<T>*>;
     };
 };
