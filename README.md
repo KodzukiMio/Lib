@@ -1,3 +1,2 @@
 # Lib
-备份用
-SZN_FUC.H只能用于MSVC
+dev.hpp只能用于MSVC
