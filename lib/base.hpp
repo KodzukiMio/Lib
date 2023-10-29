@@ -125,9 +125,7 @@ namespace KUR{
         template<typename _Ty1,typename _Ty2>struct allow_equal_operator<_Ty1,_Ty2,base::void_t<decltype(base::declval<_Ty1>() == base::declval<_Ty2>())>>:base::true_type{};
         template<typename Tchar> inline static ull strlen(const Tchar* str){
             const Tchar* p = str;
-            while (*p){
-                ++p;
-            };
+            while (*p)++p;
             return p - str;
         };
         template<typename T>inline T max(T _Left,T _Right){
@@ -176,9 +174,7 @@ namespace KUR{
                         _Flag = false;
                     };
                 };
-                if (_Flag){
-                    break;
-                };
+                if (_Flag)break;
             };
         };
         template<typename _Tp,typename _CmpPfn2Args>inline void sort_select(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn){//[_Begin,_End)    _Cmpfn(T*,T*)
@@ -187,9 +183,7 @@ namespace KUR{
                 _Tp* _Tmp1 = _Tmp0;
                 _Tp* _Min_ = _Tmp1;
                 while (_Tmp1 < _End){
-                    if (_CmpPfn(_Min_,_Tmp1)){
-                        _Min_ = _Tmp1;
-                    };
+                    if (_CmpPfn(_Min_,_Tmp1))_Min_ = _Tmp1;
                     ++_Tmp1;
                 };
                 _Tp _Tmp = *_Min_;
@@ -240,9 +234,7 @@ namespace KUR{
             };
             if (_Tmp){
                 _sort_merge(_Begin,_End,_CmpPfn,_Tmp);
-                if (_Mem){
-                    delete[] _Tmp;
-                };
+                if (_Mem)delete[] _Tmp;
                 return;
             };
         #ifdef KURZER_ENABLE_EXCEPTIONS
@@ -305,9 +297,7 @@ namespace KUR{
                     };
                 };
             };
-            if (_Seq){
-                base::reverse(_Beg_R,_End);
-            };
+            if (_Seq)base::reverse(_Beg_R,_End);
         };
         //_KUR_TEMPLATE_TYPE_IS(T1,T2)
     #define _KUR_TEMPLATE_TYPE_IS(Type,Is_Ty)template <typename Type,typename base::enable_if_t<base::is_same<Type,Is_Ty>::value>* = nullptr>
@@ -324,13 +314,9 @@ namespace KUR{
                 ull _esize = (_size >> 1) + _size;
                 this->_chunk = Malloc(_esize);
             #ifdef KURZER_ENABLE_EXCEPTIONS
-                if (!this->_chunk){
-                    throw std::runtime_error("bad alloc !");
-                };
+                if (!this->_chunk)throw std::runtime_error("bad alloc !");
             #endif
-                for (ull i = 0; i < _size; ++i){
-                    *(this->_chunk + i) = *(temp + i);
-                };
+                for (ull i = 0; i < _size; ++i)*(this->_chunk + i) = *(temp + i);
                 this->_size = _esize;
                 delete[] temp;
             };
@@ -344,9 +330,7 @@ namespace KUR{
             };
             Array(const Array& other): _size(other._size),_pos(other._pos){
                 _chunk = new Type[_size];
-                for (ull i = 0; i < _pos; ++i){
-                    _chunk[i] = other._chunk[i];
-                };
+                for (ull i = 0; i < _pos; ++i)_chunk[i] = other._chunk[i];
             };
             Array(Array&& other) noexcept: _allow_del(other._allow_del),_chunk(other._chunk),_size(other._size),_pos(other._pos){
                 other._chunk = nullptr;
@@ -372,9 +356,7 @@ namespace KUR{
                     _size = other._size;
                     _pos = other._pos;
                     _chunk = new Type[_size];
-                    for (ull i = 0; i < _pos; ++i){
-                        _chunk[i] = other._chunk[i];
-                    };
+                    for (ull i = 0; i < _pos; ++i)_chunk[i] = other._chunk[i];
                 };
                 return *this;
             };
@@ -407,16 +389,12 @@ namespace KUR{
                 return this->_chunk + index;
             };
             template<typename T> inline void push(const T value){
-                if (this->_pos == this->_size){
-                    expand();
-                };
+                if (this->_pos == this->_size)expand();
                 *(this->_chunk + _pos) = value;
                 ++_pos;
             };
             template<typename T> inline void push_back(const T value){
-                if (this->_pos == this->_size){
-                    expand();
-                };
+                if (this->_pos == this->_size)expand();
                 *(this->_chunk + _pos) = value;
                 ++_pos;
             };
@@ -437,25 +415,17 @@ namespace KUR{
             inline Type* begin(){ return _chunk; };
             inline Type* end(){ return this->_chunk + _pos; };
             inline Type* pop(){
-                if (!_pos){
-                    return nullptr;
-                };
+                if (!_pos)return nullptr;
                 return this->_chunk + --_pos;
             };
             ~Array(){
-                if (_chunk && _allow_del){
-                    delete[] _chunk;
-                };
+                if (_chunk && _allow_del)delete[] _chunk;
             };
             inline Type* erase(ull index){
             #ifdef KURZER_ENABLE_EXCEPTIONS
-                if (index >= _pos){
-                    throw std::runtime_error("Array<T> out of range !");
-                }
+                if (index >= _pos)throw std::runtime_error("Array<T> out of range !");
             #endif // KURZER_ENABLE_EXCEPTIONS
-                for (ull i = index; i < _pos - 1; ++i){
-                    _chunk[i] = _chunk[i + 1];
-                }
+                for (ull i = index; i < _pos - 1; ++i)_chunk[i] = _chunk[i + 1];
                 --_pos;
                 return _chunk + index;
             };
@@ -464,19 +434,11 @@ namespace KUR{
             inline Type* GetData(){ return this->_chunk; };
             inline void init(Type _Init_Val,ull _Size = 0){
                 ull _Len = this->Length();
-                if (_Size){
-                    _Len = _Size;
-                };
-                for (ull i = 0; i < _Len; ++i){
-                    *(this->_chunk + i) = _Init_Val;
-                };
+                if (_Size)_Len = _Size;
+                for (ull i = 0; i < _Len; ++i)*(this->_chunk + i) = _Init_Val;
             };
             inline Type* find(const Type& value){
-                for (ull i = 0; i < _pos; ++i){
-                    if (_chunk[i] == value){
-                        return &_chunk[i];
-                    };
-                };
+                for (ull i = 0; i < _pos; ++i)if (_chunk[i] == value)return &_chunk[i];
                 return end();
             };
         };
@@ -514,9 +476,7 @@ namespace KUR{
             inline String& Write(const String& str){
                 const Tchar* data = str.GetData();
                 ull _len = str.data.size();
-                for (ull i = 0; i < _len; ++i){
-                    this->data.push(*(data + i));
-                };
+                for (ull i = 0; i < _len; ++i)this->data.push(*(data + i));
                 return *this;
             };
             inline String& operator=(const Tchar* tch){
@@ -532,17 +492,13 @@ namespace KUR{
             inline String substr(ull start,ull length){
                 String result;
                 ull _end = start + length;
-                for (ull i = start; i < _end; ++i){
-                    result.data.push(this->data[i]);
-                };
+                for (ull i = start; i < _end; ++i)result.data.push(this->data[i]);
                 return result;
             };
         #ifdef _IOSTREAM_
             friend typename base::CharT<Tchar>::out_t& operator<<(typename base::CharT<Tchar>::out_t& os,const String<Tchar>& str){
                 ull _len = str.data.size();
-                for (ull i = 0; i < _len; ++i){
-                    os << str[i];
-                };
+                for (ull i = 0; i < _len; ++i)os << str[i];
                 return os;
             };
         #endif // _IOSTREAM_
@@ -581,9 +537,7 @@ namespace KUR{
                 return this->get(pos);
             };
             template<typename _Ty> inline void push(_Ty&& _Val){
-                if (is_full()){
-                    _data.expand();
-                };
+                if (is_full())_data.expand();
                 _data[_tail] = base::forward<_Ty>(_Val);
                 _tail = (_tail + 1) % capacity();
                 ++_data._pos;
@@ -642,11 +596,7 @@ namespace KUR{
                 Array<Node*,init_size>nodes;
                 template<typename...Args> Node(Args... arg){ this->push(arg...); };
                 inline void del_nodes(){
-                    if (_allow_del){
-                        for (auto i : nodes){
-                            if (i)delete i;
-                        };
-                    };
+                    if (_allow_del)for (auto i : nodes)if (i)delete i;
                 };
                 ~Node(){
                     this->del_nodes();
@@ -669,7 +619,9 @@ namespace KUR{
                 return this->_pfn(_arg_data,node);
             };
             template<typename...Args>inline void insert(Node* parent_node,Args... arg){
-                if (!parent_node){
+                if (parent_node){
+                    parent_node->data.push(T(base::forward<Args>(arg)...));
+                } else{
                     if (!_size){
                         this->init(base::forward<Args>(arg)...);
                     } else{
@@ -678,69 +630,61 @@ namespace KUR{
                     #endif
                         return;
                     };
-                } else{
-                    parent_node->data.push(T(base::forward<Args>(arg)...));
-                    ++_size;
                 };
             };
-            template<typename...Args>inline void insert_node(Node* parent_node,Args... arg){//平均每个节点占用314 Bytes,可以在构造时将init_size设置为较小的数值来减少初始大小.例如 using trees = KUR::base::tree_types<int,2>;//->131 Bytes
-                if (!parent_node){
-                    if (!_size){
-                        this->init(base::forward<Args>(arg)...);
-                    } else{
-                    #ifdef KURZER_ENABLE_EXCEPTIONS
-                        throw std::runtime_error("Parent node cannot be null");
-                    #endif
-                        return;
-                    };
-                } else{
+            template<typename...Args>inline Node* insert_node(Node* parent_node,Args... arg){//平均每个节点占用314 Bytes,可以在构造时将init_size设置为较小的数值来减少初始大小.例如 using trees = KUR::base::tree_types<int,2>;//->131 Bytes
+                if (parent_node){
                     Node* newNode = new Node(base::forward<Args>(arg)...);
                     if (newNode){
                         parent_node->nodes.push(newNode);
                         ++_size;
+                        return newNode;
                     } else{
                     #ifdef KURZER_ENABLE_EXCEPTIONS
                         throw std::runtime_error("Could not alloc memory!");
                     #endif
-                        return;
+                    };
+                } else{
+                    if (!_size){
+                        this->init(base::forward<Args>(arg)...);
+                    } else{
+                    #ifdef KURZER_ENABLE_EXCEPTIONS
+                        throw std::runtime_error("Parent node cannot be null");
+                    #endif
                     };
                 };
+                return nullptr;
             };
             inline void traverse(Node* node,void(*_Pfn)(Node*)){//void _Pfn(KUR::base::_tree_search_t<T>* node)
                 _Pfn(node);
-                for (auto child : node->nodes){
-                    traverse(child,_Pfn);
-                };
+                for (auto child : node->nodes)traverse(child,_Pfn);
             };
             Node* find_node(Node* node,const T& value,Node** parentNode){
-                if (node->data.find(value) != node->eof()){
-                    return node;
-                }
+                if (node->data.find(value) != node->eof())return node;
                 for (auto child : node->nodes){
                     *parentNode = node;
                     Node* foundNode = find_node(child,value);
-                    if (foundNode != nullptr){
-                        return foundNode;
-                    };
+                    if (foundNode != nullptr)return foundNode;
                 };
                 return nullptr;
             };
             Node* find_node(Node* node,const T& value){
-                if (node->data.find(value) != node->eof()){
-                    return node;
-                }
+                if (node->data.find(value) != node->eof())return node;
                 for (auto child : node->nodes){
                     Node* foundNode = find_node(child,value);
-                    if (foundNode != nullptr){
-                        return foundNode;
-                    };
+                    if (foundNode != nullptr)return foundNode;
+                };
+                return nullptr;
+            };
+            Node* find_parent_node(Node* start_node,Node* node){
+                for (auto child : start_node->nodes){
+                    if (child == node)return start_node;
+                    return find_parent_node(child,node);
                 };
                 return nullptr;
             };
             template<typename _Ty,typename..._F_Args>Node* find_node(Node* node,_Ty _CmpPfn,_F_Args... _CmpArgs,Node** parentNode){
-                if (_CmpPfn(node,base::forward<_F_Args>(_CmpArgs)...)){
-                    return node;
-                };
+                if (_CmpPfn(node,base::forward<_F_Args>(_CmpArgs)...))return node;
                 for (auto child : node->nodes){
                     *parentNode = node;
                     Node* foundNode = find_node(child,_CmpPfn,base::forward<_F_Args>(_CmpArgs)...);
@@ -751,38 +695,38 @@ namespace KUR{
                 return nullptr;
             };
             template<typename..._F_Args>Node* find_node(Node* node,bool(*_CmpPfn)(Node*,_F_Args...),_F_Args... _CmpArgs){//bool _Pfn(trees::search_t* node,...)
-                if (_CmpPfn(node,base::forward<_F_Args>(_CmpArgs)...)){
-                    return node;
-                };
+                if (_CmpPfn(node,base::forward<_F_Args>(_CmpArgs)...))return node;
                 for (auto child : node->nodes){
                     Node* foundNode = find_node(child,_CmpPfn,base::forward<_F_Args>(_CmpArgs)...);
-                    if (foundNode != nullptr){
-                        return foundNode;
-                    };
+                    if (foundNode != nullptr)return foundNode;
                 };
                 return nullptr;
             };
-            void delete_node(const T& value){//not del root
+            bool delete_node(const T& value){//not del root
                 Node* parentNode = nullptr;
                 Node* nodeToDelete = find_node(_base_node,value,&parentNode);
-                if (nodeToDelete == nullptr){
-                #ifdef KURZER_ENABLE_EXCEPTIONS
-                    throw std::runtime_error("Node not found");
-                #endif
-                    return;
-                };
-                for (ull i = 0; i < nodeToDelete->nodes.size(); ++i){
-                    parentNode->nodes.push(nodeToDelete->nodes[i]);
-                }
+                if (nodeToDelete == nullptr || nodeToDelete == this->_base_node)return false;
+                for (ull i = 0; i < nodeToDelete->nodes.size(); ++i)parentNode->nodes.push(nodeToDelete->nodes[i]);
                 nodeToDelete->_allow_del = false;
                 parentNode->nodes.erase(parentNode->nodes.find(nodeToDelete) - parentNode->nodes.begin());
                 delete nodeToDelete;
                 --_size;
+                return true;
+            };
+            bool delete_node(Node* node){
+                if (!node || node == this->_base_node)return false;
+                Node* parent_node = this->find_parent_node(this->_base_node,node);
+                if (!parent_node)return false;
+                Node* node_to_delete = node;
+                for (ull i = 0; i < node_to_delete->nodes.size(); ++i)parent_node->nodes.push(node_to_delete->nodes[i]);
+                node_to_delete->_allow_del = false;
+                parent_node->nodes.erase(parent_node->nodes.find(node_to_delete) - parent_node->nodes.begin());
+                delete node_to_delete;
+                --_size;
+                return true;
             };
             ~Tree(){
-                if (_base_node){
-                    delete _base_node;
-                };
+                if (_base_node)delete _base_node;
             };
         };
         template<typename T>class _simple_auto_ptr{
