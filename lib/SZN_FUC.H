@@ -1,5 +1,5 @@
 ﻿//2021-2022
-//适用于 VS C++17
+//适用于 MSVC C++ 17+
 #pragma once
 #ifndef SZN_FUNC_H_
 #define SZN_FUNC_H_

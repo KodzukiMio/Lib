@@ -1,4 +1,5 @@
 ﻿//2023-2024
+//适用于 C++17 及以上标准
 /*
 199711L - C++98 | C++03
 201103L - C++11
@@ -430,6 +431,9 @@ namespace KUR{
                 _size = 0;
                 _pos = 0;
             };
+            inline void clear(){
+                this->_pos = 0;
+            };
             inline Type* begin(){ return _chunk; };
             inline Type* end(){ return this->_chunk + _pos; };
             inline Type* pop(){
@@ -438,7 +442,6 @@ namespace KUR{
                 };
                 return this->_chunk + --_pos;
             };
-            inline ull Length()const{ return this->_pos; };
             ~Array(){
                 if (_chunk && _allow_del){
                     delete[] _chunk;
@@ -457,7 +460,7 @@ namespace KUR{
                 return _chunk + index;
             };
             inline ull size()const{ return this->_pos; };
-            inline ull MaxSize(){ return this->_size; };
+            inline ull capacity(){ return this->_size; };
             inline Type* GetData(){ return this->_chunk; };
             inline void init(Type _Init_Val,ull _Size = 0){
                 ull _Len = this->Length();
@@ -480,14 +483,10 @@ namespace KUR{
         template<typename T>using array = Array<T>;
         template<typename Tchar,ull baseN = 0x10,typename base::enable_if_t<base::is_character<Tchar>::value>* = nullptr>class String{
         public:
-            base::Array<Tchar> data;
+            base::Array<Tchar,baseN> data;
             String(){};
             String(const Tchar* tch){
                 this->Write(tch);
-            };
-            inline void Init(){
-                data.Free();
-                data.create(baseN);
             };
             inline Tchar& operator[](const ull pos){
                 return data[pos];
@@ -514,19 +513,19 @@ namespace KUR{
             };
             inline String& Write(const String& str){
                 const Tchar* data = str.GetData();
-                ull _len = str.data.Length();
+                ull _len = str.data.size();
                 for (ull i = 0; i < _len; ++i){
                     this->data.push(*(data + i));
                 };
                 return *this;
             };
             inline String& operator=(const Tchar* tch){
-                this->Init();
+                this->data.clear();
                 this->Write(tch);
                 return *this;
             };
             inline String& operator=(const String& str){
-                this->Init();
+                this->data.clear();
                 this->Write(str);
                 return *this;
             };
@@ -540,7 +539,7 @@ namespace KUR{
             };
         #ifdef _IOSTREAM_
             friend typename base::CharT<Tchar>::out_t& operator<<(typename base::CharT<Tchar>::out_t& os,const String<Tchar>& str){
-                ull _len = str.data.Length();
+                ull _len = str.data.size();
                 for (ull i = 0; i < _len; ++i){
                     os << str[i];
                 };
@@ -558,10 +557,10 @@ namespace KUR{
             base::Array<T> _data = base::Array<T>(_BaseN);
             Queue(){};
             inline ull capacity(){
-                return _data.MaxSize();
+                return _data.capacity();
             };
             inline ull size(){
-                return _data.Length();
+                return _data.size();
             };
             inline bool is_empty(){
                 return _head == _tail;
@@ -642,7 +641,7 @@ namespace KUR{
                 bool _allow_del = true;
                 Array<Node*,init_size>nodes;
                 template<typename...Args> Node(Args... arg){ this->push(arg...); };
-                void del_nodes(){
+                inline void del_nodes(){
                     if (_allow_del){
                         for (auto i : nodes){
                             if (i)delete i;
@@ -707,7 +706,7 @@ namespace KUR{
                     };
                 };
             };
-            void traverse(Node* node,void(*_Pfn)(Node*)){//void _Pfn(KUR::base::_tree_search_t<T>* node)
+            inline void traverse(Node* node,void(*_Pfn)(Node*)){//void _Pfn(KUR::base::_tree_search_t<T>* node)
                 _Pfn(node);
                 for (auto child : node->nodes){
                     traverse(child,_Pfn);
@@ -738,7 +737,7 @@ namespace KUR{
                 };
                 return nullptr;
             };
-            template<typename _Ty,typename..._F_Args>inline Node* find_node(Node* node,_Ty _CmpPfn,_F_Args... _CmpArgs,Node** parentNode){
+            template<typename _Ty,typename..._F_Args>Node* find_node(Node* node,_Ty _CmpPfn,_F_Args... _CmpArgs,Node** parentNode){
                 if (_CmpPfn(node,base::forward<_F_Args>(_CmpArgs)...)){
                     return node;
                 };
@@ -751,7 +750,7 @@ namespace KUR{
                 };
                 return nullptr;
             };
-            template<typename..._F_Args>inline Node* find_node(Node* node,bool(*_CmpPfn)(Node*,_F_Args...),_F_Args... _CmpArgs){//bool _Pfn(trees::search_t* node,...)
+            template<typename..._F_Args>Node* find_node(Node* node,bool(*_CmpPfn)(Node*,_F_Args...),_F_Args... _CmpArgs){//bool _Pfn(trees::search_t* node,...)
                 if (_CmpPfn(node,base::forward<_F_Args>(_CmpArgs)...)){
                     return node;
                 };
