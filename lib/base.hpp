@@ -272,7 +272,7 @@ namespace KUR{
                 sort_quick(_Pos + 1,_End,_CmpPfn);
             };
         };
-        template<typename Type>class Array;
+        template<typename Type,ull init_size>class Array;
         template<typename _Tp>inline _Tp _sort_count_size(_Tp* _Begin,_Tp* _End,_Tp& _Out_Lower){
             _Tp _Lower = *_Begin;
             _Tp _Upper = *_Begin;
@@ -312,7 +312,7 @@ namespace KUR{
     #define _KUR_TEMPLATE_TYPE_IS(Type,Is_Ty)template <typename Type,typename base::enable_if_t<base::is_same<Type,Is_Ty>::value>* = nullptr>
     //_KUR_TEMPLATE_T_IS(T2)
     #define _KUR_TEMPLATE_T_IS(Is_Ty) _KUR_TEMPLATE_TYPE_IS(T,Is_Ty) 
-        template<typename Type>class Array{
+        template<typename Type,ull init_size = 0x10>class Array{
         public:
             bool _allow_del = true;
             Type* _chunk = 0;
@@ -333,7 +333,7 @@ namespace KUR{
                 this->_size = _esize;
                 delete[] temp;
             };
-            Array(ull initSize = 0x10){
+            Array(ull initSize = init_size){
                 create(initSize);
             };
             inline void create(ull initSize = 0x10){
@@ -609,9 +609,9 @@ namespace KUR{
             };
         };
         template<typename T> using queue = Queue<T,0x10>;
-        template<typename T> class base_node{
+        template<typename T,ull init_size = 0x10> class base_node{
         public:
-            Array<T> data;
+            Array<T,init_size> data;
             template<typename...Args>inline void push(Args... arg){ data.push(T(arg...)); };//value | constructor
             template<typename Ty,typename...Args>inline T* find(Ty _CmpPfn,Args... _CmpArgs){//_CmpPfn(*itr,_CmpArgs...)
                 return base::find(data.begin(),data.end(),_CmpPfn,base::forward<Args>(_CmpArgs)...);
@@ -634,13 +634,13 @@ namespace KUR{
                 return this->_pfn(base::forward<_Args>(args)...);
             };
         };
-        template<typename T,typename... _Args>class Tree:public _simple_function<bool,_Args...>{//TODO
+        template<typename T,ull init_size = 0x10,typename... _Args>class Tree:public _simple_function<bool,_Args...>{
         public:
             using value_type = T;
-            class Node:public base::base_node<T>{
+            class Node:public base::base_node<T,init_size>{
             public:
                 bool _allow_del = true;
-                Array<Node*>nodes;
+                Array<Node*,init_size>nodes;
                 void del_nodes(){
                     if (_allow_del){
                         for (auto i : nodes){
@@ -665,7 +665,7 @@ namespace KUR{
             template<typename T> inline void set_data(const T* dat){
                 _arg_data = (void*)dat;
             };
-            inline bool call(base::Tree<T,_Args...>::Node* node){
+            inline bool call(base::Tree<T,init_size,_Args...>::Node* node){
                 return this->_pfn(_arg_data,node);
             };
             template<typename...Args>inline void insert(Node* parent_node,Args... arg){
@@ -683,7 +683,7 @@ namespace KUR{
                     ++_size;
                 };
             };
-            template<typename...Args>inline void insert_node(Node* parent_node,Args... arg){
+            template<typename...Args>inline void insert_node(Node* parent_node,Args... arg){//平均每个节点占用314 Bytes,可以在构造时将init_size设置为较小的数值来减少初始大小.例如 using trees = KUR::base::tree_types<int,2>;//->131 Bytes
                 if (!parent_node){
                     if (!_size){
                         this->init(base::forward<Args>(arg)...);
@@ -695,8 +695,15 @@ namespace KUR{
                     };
                 } else{
                     Node* newNode = new Node(base::forward<Args>(arg)...);
-                    parent_node->nodes.push(newNode);
-                    ++_size;
+                    if (newNode){
+                        parent_node->nodes.push(newNode);
+                        ++_size;
+                    } else{
+                    #ifdef KURZER_ENABLE_EXCEPTIONS
+                        throw std::runtime_error("Could not alloc memory!");
+                    #endif
+                        return;
+                    };
                 };
             };
             void traverse(Node* node,void(*_Pfn)(Node*)){//void _Pfn(KUR::base::_tree_search_t<T>* node)
@@ -705,50 +712,50 @@ namespace KUR{
                     traverse(child,_Pfn);
                 };
             };
-            Node* find_node(const T& value,Node* node,Node** parentNode){
-                if (node->data.find(value) != node->data.end()){
+            Node* find_node(Node* node,const T& value,Node** parentNode){
+                if (node->data.find(value) != node->eof()){
                     return node;
                 }
                 for (auto child : node->nodes){
                     *parentNode = node;
-                    Node* foundNode = find_node(value,child);
+                    Node* foundNode = find_node(child,value);
                     if (foundNode != nullptr){
                         return foundNode;
                     };
                 };
                 return nullptr;
             };
-            Node* find_node(const T& value,Node* node){
-                if (node->data.find(value) != node->data.end()){
+            Node* find_node(Node* node,const T& value){
+                if (node->data.find(value) != node->eof()){
                     return node;
                 }
                 for (auto child : node->nodes){
-                    Node* foundNode = find_node(value,child);
+                    Node* foundNode = find_node(child,value);
                     if (foundNode != nullptr){
                         return foundNode;
                     };
                 };
                 return nullptr;
             };
-            template<typename _Ty,typename..._F_Args>inline Node* find_node(_Ty _CmpPfn,_F_Args... _CmpArgs,Node* node,Node** parentNode){
+            template<typename _Ty,typename..._F_Args>inline Node* find_node(Node* node,_Ty _CmpPfn,_F_Args... _CmpArgs,Node** parentNode){
                 if (_CmpPfn(node,base::forward<_F_Args>(_CmpArgs)...)){
                     return node;
                 };
                 for (auto child : node->nodes){
                     *parentNode = node;
-                    Node* foundNode = find_node(_CmpPfn,base::forward<_F_Args>(_CmpArgs)...,child);
+                    Node* foundNode = find_node(child,_CmpPfn,base::forward<_F_Args>(_CmpArgs)...);
                     if (foundNode != nullptr){
                         return foundNode;
                     };
                 };
                 return nullptr;
             };
-            template<typename _Ty,typename..._F_Args>inline Node* find_node(_Ty _CmpPfn,_F_Args... _CmpArgs,Node* node){
+            template<typename..._F_Args>inline Node* find_node(Node* node,bool(*_CmpPfn)(Node*,_F_Args...),_F_Args... _CmpArgs){//bool _Pfn(trees::search_t* node,...)
                 if (_CmpPfn(node,base::forward<_F_Args>(_CmpArgs)...)){
                     return node;
                 };
                 for (auto child : node->nodes){
-                    Node* foundNode = find_node(_CmpPfn,base::forward<_F_Args>(_CmpArgs)...,child);
+                    Node* foundNode = find_node(child,_CmpPfn,base::forward<_F_Args>(_CmpArgs)...);
                     if (foundNode != nullptr){
                         return foundNode;
                     };
@@ -757,7 +764,7 @@ namespace KUR{
             };
             void delete_node(const T& value){//not del root
                 Node* parentNode = nullptr;
-                Node* nodeToDelete = find_node(value,_base_node,&parentNode);
+                Node* nodeToDelete = find_node(_base_node,value,&parentNode);
                 if (nodeToDelete == nullptr){
                 #ifdef KURZER_ENABLE_EXCEPTIONS
                     throw std::runtime_error("Node not found");
@@ -789,11 +796,16 @@ namespace KUR{
                 return *_Ptr;
             };
         };
-        template<typename T>using bt_node = base::Tree<T,void*,T>::Node;
-        template<typename T>using _tree_search_t = base::Tree<T,void*,base::bt_node<T>*>::Node;
+        template<typename T,ull init_size = 0x10>using bt_node = base::Tree<T,init_size,void*,T>::Node;
+        template<typename T,ull init_size = 0x10>using _tree_search_t = base::Tree<T,init_size,void*,base::bt_node<T>*>::Node;
         template<typename T,typename... _Args>auto make_tree(bool(*_Pfn)(_Args...)){//bool function(void*,base::bt_node<T>*) 
             return Tree<T,_Args...>(_Pfn);
         };
-        template<typename T>using tree = Tree<T,void*,base::bt_node<T>*>;
+        template<typename T,ull init_size = 0x10>using tree = Tree<T,init_size,void*,base::bt_node<T>*>;
+        template<typename T,ull init_size = 0x10>struct tree_types{ //recommendation
+        public:
+            using tree_t = base::tree<T,init_size>;//Tree type
+            using node_t = base::_tree_search_t<T,init_size>;//Tree::Node type
+        };
     };
 };
