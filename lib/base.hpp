@@ -60,7 +60,7 @@ namespace KUR{
         //typename base::enable_if<TRUE?>::type* = nullptr
         template<bool condition,typename T = void>struct enable_if{};
         template<typename T>struct enable_if<true,T>{ typedef T type; };
-        template <bool _Test,typename _Ty = void>using enable_if_t = enable_if<_Test,_Ty>::type;
+        template <bool _Test,typename _Ty = void>using enable_if_t = typename enable_if<_Test,_Ty>::type;
         //is_same<T1,T2>::value
         template <typename T,typename U>struct is_same{
             static constexpr bool value = false;
@@ -289,7 +289,7 @@ namespace KUR{
             auto _Beg = _Begin;
             auto _Beg_R = _Begin;
             auto _Size = _sort_count_size<_Tp>(_Begin,_End,_Lower);
-            Array<_Tp> _Tmp(_Size);
+            Array<_Tp,0x10> _Tmp(_Size);
             _Tmp.init(0,_Size);
             while (_Begin < _End){
                 ++_Tmp[(*_Begin - _Lower)];
@@ -641,6 +641,7 @@ namespace KUR{
             public:
                 bool _allow_del = true;
                 Array<Node*,init_size>nodes;
+                template<typename...Args> Node(Args... arg){ this->push(arg...); };
                 void del_nodes(){
                     if (_allow_del){
                         for (auto i : nodes){
@@ -662,7 +663,7 @@ namespace KUR{
                 _base_node = new Node(base::forward<Args>(arg)...);
                 ++_size;
             }
-            template<typename T> inline void set_data(const T* dat){
+            template<typename _Ty> inline void set_data(const _Ty* dat){
                 _arg_data = (void*)dat;
             };
             inline bool call(base::Tree<T,init_size,_Args...>::Node* node){
@@ -796,10 +797,10 @@ namespace KUR{
                 return *_Ptr;
             };
         };
-        template<typename T,ull init_size = 0x10>using bt_node = base::Tree<T,init_size,void*,T>::Node;
-        template<typename T,ull init_size = 0x10>using _tree_search_t = base::Tree<T,init_size,void*,base::bt_node<T>*>::Node;
-        template<typename T,typename... _Args>auto make_tree(bool(*_Pfn)(_Args...)){//bool function(void*,base::bt_node<T>*) 
-            return Tree<T,_Args...>(_Pfn);
+        template<typename T,ull init_size = 0x10>using bt_node = typename base::Tree<T,init_size,void*,T>::Node;
+        template<typename T,ull init_size = 0x10>using _tree_search_t = typename base::Tree<T,init_size,void*,base::bt_node<T>*>::Node;
+        template<typename T,ull init_size = 0x10,typename... _Args>auto make_tree(bool(*_Pfn)(_Args...)){//bool function(void*,base::bt_node<T>*) 
+            return Tree<T,init_size,_Args...>(_Pfn);
         };
         template<typename T,ull init_size = 0x10>using tree = Tree<T,init_size,void*,base::bt_node<T>*>;
         template<typename T,ull init_size = 0x10>struct tree_types{ //recommendation
