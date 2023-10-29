@@ -128,11 +128,14 @@ namespace KUR{
             while (*p)++p;
             return p - str;
         };
-        template<typename T>inline T max(T _Left,T _Right){
+        template<typename T>inline T _max(T _Left,T _Right){
             return ((_Left) < (_Right)) ? (_Right) : (_Left);
         };
-        template<typename T>inline T min(T _Left,T _Right){
+        template<typename T>inline T _min(T _Left,T _Right){
             return ((_Left) < (_Right)) ? (_Left) : (_Right);
+        };
+        template<typename T>inline T gcd(const T& _Lv,const T& _Rv){
+            return !_Rv ? _Lv : base::gcd(_Rv,_Lv % _Rv);
         };
         template <typename _Itr>void reverse(_Itr _Begin,_Itr _End){
             while (_Begin != _End){
@@ -270,8 +273,8 @@ namespace KUR{
             _Tp _Lower = *_Begin;
             _Tp _Upper = *_Begin;
             while (_Begin < _End){
-                _Lower = base::min(*_Begin,_Lower);
-                _Upper = base::max(*_Begin,_Upper);
+                _Lower = base::_min(*_Begin,_Lower);
+                _Upper = base::_max(*_Begin,_Upper);
                 ++_Begin;
             };
             _Out_Lower = _Lower;
