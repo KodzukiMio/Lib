@@ -51,17 +51,16 @@ namespace KUR{
         };
         template <typename>inline constexpr bool _Always_false = false;
         template<typename Tchar> struct CharT{
-        #ifdef _XSTRING_
+        #if __has_include(<string>)
             using char_t = std::basic_string<Tchar,std::char_traits<Tchar>,std::allocator<Tchar>>;
         #endif // _XSTRING_
-        #ifdef _IOSTREAM_
+        #if __has_include(<iostream>)
             using out_t = std::basic_ostream<Tchar,std::char_traits<Tchar>>;
         #endif // _IOSTREAM_
         };
         //typename base::enable_if<TRUE?>::type* = nullptr
         template<bool condition,typename T = void>struct enable_if{};
         template<typename T>struct enable_if<true,T>{ typedef T type; };
-        template <bool _Test,typename _Ty = void>using enable_if_t = typename enable_if<_Test,_Ty>::type;
         //is_same<T1,T2>::value
         template <typename T,typename U>struct is_same{
             static constexpr bool value = false;
@@ -128,10 +127,10 @@ namespace KUR{
             while (*p)++p;
             return p - str;
         };
-        template<typename T>inline T _max(T _Left,T _Right){
+        template<typename T>inline T max(T _Left,T _Right){
             return ((_Left) < (_Right)) ? (_Right) : (_Left);
         };
-        template<typename T>inline T _min(T _Left,T _Right){
+        template<typename T>inline T min(T _Left,T _Right){
             return ((_Left) < (_Right)) ? (_Left) : (_Right);
         };
         template<typename T>inline T gcd(const T& _Lv,const T& _Rv){
@@ -155,16 +154,65 @@ namespace KUR{
             while (_Begin != _End){
                 if (_CmpPfn(*_Begin,base::forward<Args>(_CmpArgs)...))return _Begin;
                 ++_Begin;
-            }
+            };
             return _End;
         };
-        template<typename _Ty,typename _Itr,typename base::enable_if_t<base::allow_equal_operator<_Ty,decltype(*base::declval<_Itr>())>::value>* = nullptr>inline _Itr find(_Itr _Begin,_Itr _End,const _Ty _Cmp_Val){//need operator ==
+        template<typename _Ty,typename _Itr,typename base::enable_if<base::allow_equal_operator<_Ty,decltype(*base::declval<_Itr>())>::value>::type* = nullptr>inline _Itr find(_Itr _Begin,_Itr _End,const _Ty _Cmp_Val){//need operator ==
             while (_Begin != _End){
                 if (*_Begin == base::move(_Cmp_Val))return _Begin;
                 ++_Begin;
-            }
+            };
             return _End;
         };
+        const constexpr ull npos = -1;
+        template<typename Tchar,typename base::enable_if<base::is_character<Tchar>::value>::type* = nullptr>inline ull bf_search(const Tchar* _Sstr,const Tchar* _Fstr,const ull _First = 0,const ull _Last = base::npos){
+            const Tchar* _Ssptr = _Sstr + _First;
+            const Tchar* _Sptr = _Ssptr;
+            const Tchar* _Fptr = _Fstr;
+            ull _Pos = 0;
+            if (_Last == base::npos){
+                while (*_Ssptr){
+                    _Sptr = _Ssptr;
+                    _Fptr = _Fstr;
+                    while ((*_Sptr == *_Fptr) && *_Fptr){
+                        ++_Sptr;
+                        ++_Fptr;
+                    };
+                    if (!*_Fptr){
+                        _Pos = _Ssptr - _Sstr;
+                        goto step;
+                    };
+                    _Ssptr = _Sptr + 1;
+                };
+            } else{
+                while (*_Ssptr && ((_Ssptr - _Sstr) < _Last)){
+                    _Sptr = _Ssptr;
+                    _Fptr = _Fstr;
+                    while ((*_Sptr == *_Fptr) && *_Fptr){
+                        ++_Sptr;
+                        ++_Fptr;
+                    };
+                    if (!*_Fptr){
+                        _Pos = _Ssptr - _Sstr;
+                        goto step;
+                    };
+                    _Ssptr = _Sptr + 1;
+                };
+            };
+            return base::npos;
+        step:
+            if (_Pos >= (_Fstr - _Sstr))return base::npos;
+            return _Pos;
+        };
+        template<typename Tchar,typename base::enable_if<base::is_character<Tchar>::value>::type* = nullptr>inline bool _str_isolength(const Tchar* _Sstr,const Tchar* _Fstr){//length _Sstr >= _Fstr
+            while ((*_Sstr == *_Fstr) && *_Fstr){
+                ++_Sstr;
+                ++_Fstr;
+            };
+            if (!*_Fstr)return true;
+            return false;
+        };
+
         template<typename _Tp,typename _CmpPfn2Args>inline void sort_bubble(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn){//[_Begin,_End)    _Cmpfn(T*,T*)
             size_t n = _End - _Begin;
             for (size_t i = 0; i < n; ++i){
@@ -186,7 +234,7 @@ namespace KUR{
                 _Tp* _Tmp1 = _Tmp0;
                 _Tp* _Min_ = _Tmp1;
                 while (_Tmp1 < _End){
-                    if (_CmpPfn(_Min_,_Tmp1))_Min_ = _Tmp1;
+                    if (_CmpPfn(_Tmp1,_Min_))_Min_ = _Tmp1;
                     ++_Tmp1;
                 };
                 _Tp _Tmp = *_Min_;
@@ -244,43 +292,20 @@ namespace KUR{
             throw std::bad_alloc();
         #endif // KURZER_ENABLE_EXCEPTIONS
         };
-        template<typename _Tp,typename _CmpPfn2Args>inline _Tp* _partition(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn){
-            _Tp* _Mid = _Begin + ((_End - _Begin) >> 1);
-            _Tp* _Ed = _End - 1;
-            if (_CmpPfn(_Mid,_Begin)) base::swap(*_Mid,*_Begin);
-            if (_CmpPfn(_Ed,_Begin)) base::swap(*_Ed,*_Begin);
-            if (_CmpPfn(_Ed,_Mid)) base::swap(*_Ed,*_Mid);
-            _Tp* _P0 = _Begin;
-            _Tp* _Pos = _Mid;
-            for (_Tp* _P1 = _Begin; _P1 < _End; ++_P1){
-                if (_CmpPfn(_P1,_Pos)){
-                    base::swap(*_P0,*_P1);
-                    ++_P0;
-                };
-            };
-            base::swap(*_P0,*_Pos);
-            return _P0;
-        };
-        template<typename _Tp,typename _CmpPfn2Args>inline void sort_quick(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn){//[_Begin,_End)    _Cmpfn(T*,T*)
-            if (_End > _Begin){
-                _Tp* _Pos = _partition(_Begin,_End,_CmpPfn);
-                sort_quick(_Begin,_Pos,_CmpPfn);
-                sort_quick(_Pos + 1,_End,_CmpPfn);
-            };
-        };
+
         template<typename Type,ull init_size>class Array;
         template<typename _Tp>inline _Tp _sort_count_size(_Tp* _Begin,_Tp* _End,_Tp& _Out_Lower){
             _Tp _Lower = *_Begin;
             _Tp _Upper = *_Begin;
             while (_Begin < _End){
-                _Lower = base::_min(*_Begin,_Lower);
-                _Upper = base::_max(*_Begin,_Upper);
+                _Lower = base::min(*_Begin,_Lower);
+                _Upper = base::max(*_Begin,_Upper);
                 ++_Begin;
             };
             _Out_Lower = _Lower;
             return (_Upper - _Lower + 1);
         };
-        template<typename _Tp,typename  base::enable_if_t<base::is_integral<_Tp>::value>* = nullptr>inline void sort_count(_Tp* _Begin,_Tp* _End,base::_Sequence _Seq = base::sort_sequence::upper){//[_Begin,_End)
+        template<typename _Tp,typename  base::enable_if<base::is_integral<_Tp>::value>::type* = nullptr>inline void sort_count(_Tp* _Begin,_Tp* _End,base::_Sequence _Seq = base::sort_sequence::upper){//[_Begin,_End)
             _Tp _Lower = 0;
             auto _Beg = _Begin;
             auto _Beg_R = _Begin;
@@ -306,15 +331,20 @@ namespace KUR{
     #define _KUR_TEMPLATE_TYPE_IS(Type,Is_Ty)template <typename Type,typename base::enable_if_t<base::is_same<Type,Is_Ty>::value>* = nullptr>
     //_KUR_TEMPLATE_T_IS(T2)
     #define _KUR_TEMPLATE_T_IS(Is_Ty) _KUR_TEMPLATE_TYPE_IS(T,Is_Ty) 
+    #pragma warning(disable : 6385)
         template<typename Type,ull init_size = 0x10>class Array{
         public:
             bool _allow_del = true;
-            Type* _chunk = 0;
+            Type* _chunk = nullptr;
             ull _size = 0;
             ull _pos = 0;
             inline void expand(){
+                if (!_chunk){
+                    this->create(init_size);
+                    return;
+                };
                 Type* temp = _chunk;
-                ull _esize = (_size >> 1) + _size;
+                ull _esize = (_size << 1);
                 this->_chunk = Malloc(_esize);
             #ifdef KURZER_ENABLE_EXCEPTIONS
                 if (!this->_chunk)throw std::runtime_error("bad alloc !");
@@ -323,8 +353,9 @@ namespace KUR{
                 this->_size = _esize;
                 delete[] temp;
             };
-            Array(ull initSize = init_size){
-                create(initSize);
+            Array(ull initSize = 0){//Array<T>(0) ->not alloc memory
+                if (initSize)create(initSize);
+                this->_pos = initSize;
             };
             inline void create(ull initSize = 0x10){
                 if (initSize < 0x2)initSize = 0x2;
@@ -342,7 +373,8 @@ namespace KUR{
             };
             Array& operator=(Array&& other) noexcept{
                 if (this != &other){
-                    delete[] _chunk;
+                    if (!this->capacity())return *this;
+                    if (_chunk)delete[] _chunk;
                     _allow_del = other._allow_del;
                     _chunk = other._chunk;
                     _size = other._size;
@@ -355,7 +387,8 @@ namespace KUR{
             };
             Array& operator=(const Array& other){
                 if (this != &other){
-                    delete[] _chunk;
+                    if (!this->capacity())return *this;
+                    if (_chunk)delete[] _chunk;
                     _size = other._size;
                     _pos = other._pos;
                     _chunk = new Type[_size];
@@ -392,12 +425,7 @@ namespace KUR{
                 return this->_chunk + index;
             };
             template<typename T> inline void push(const T value){
-                if (this->_pos == this->_size)expand();
-                *(this->_chunk + _pos) = value;
-                ++_pos;
-            };
-            template<typename T> inline void push_back(const T value){
-                if (this->_pos == this->_size)expand();
+                if (this->_pos >= this->_size)expand();
                 *(this->_chunk + _pos) = value;
                 ++_pos;
             };
@@ -417,6 +445,7 @@ namespace KUR{
             };
             inline Type* begin(){ return _chunk; };
             inline Type* end(){ return this->_chunk + _pos; };
+            inline Type* last(){ return this->_chunk + _pos - 1; };
             inline Type* pop(){
                 if (!_pos)return nullptr;
                 return this->_chunk + --_pos;
@@ -444,9 +473,14 @@ namespace KUR{
                 for (ull i = 0; i < _pos; ++i)if (_chunk[i] == value)return &_chunk[i];
                 return end();
             };
+            inline ull find_idx(const Type& value){
+                Type* _frsl = this->find(value);
+                if (_frsl == this->end())return -1;
+                return _frsl - this->begin();
+            };
         };
         template<typename T>using array = Array<T>;
-        template<typename Tchar,ull baseN = 0x10,typename base::enable_if_t<base::is_character<Tchar>::value>* = nullptr>class String{
+        template<typename Tchar,ull baseN = 0x10,typename base::enable_if<base::is_character<Tchar>::value>::type* = nullptr>class String{
         public:
             base::Array<Tchar,baseN> data;
             String(){};
@@ -498,13 +532,16 @@ namespace KUR{
                 for (ull i = start; i < _end; ++i)result.data.push(this->data[i]);
                 return result;
             };
-        #ifdef _IOSTREAM_
+            inline ull size(){
+                return data.size() - 1;
+            };
+        #if __has_include(<iostream>)
             friend typename base::CharT<Tchar>::out_t& operator<<(typename base::CharT<Tchar>::out_t& os,const String<Tchar>& str){
                 ull _len = str.data.size();
                 for (ull i = 0; i < _len; ++i)os << str[i];
                 return os;
             };
-        #endif // _IOSTREAM_
+        #endif
         };
         using string = String<char,0x10>;
         using wstring = String<wchar_t,0x10>;
@@ -572,7 +609,7 @@ namespace KUR{
             template<typename Ty,typename...Args>inline T* find(Ty _CmpPfn,Args... _CmpArgs){//_CmpPfn(*itr,_CmpArgs...)
                 return base::find(data.begin(),data.end(),_CmpPfn,base::forward<Args>(_CmpArgs)...);
             };
-            template<typename Ty,typename base::enable_if_t<base::allow_equal_operator<Ty,T>::value>* = nullptr>inline T* find(const Ty _Cmp_Val){//need operator ==
+            template<typename Ty,typename base::enable_if<base::allow_equal_operator<Ty,T>::value>::type* = nullptr>inline T* find(const Ty _Cmp_Val){//need operator ==
                 return base::find(data.begin(),data.end(),base::forward<const Ty>(_Cmp_Val));
             };
             inline auto eof(){ return this->data.end(); };
@@ -754,5 +791,186 @@ namespace KUR{
             using tree_t = base::tree<T,init_size>;//Tree type
             using node_t = base::_tree_search_t<T,init_size>;//Tree::Node type
         };
+        template<typename T,ull init_size = 0x10,typename base::enable_if<base::is_character<T>::value>::type* = nullptr>class trie_node{
+        public:
+            using value_type = T;
+            using _type_node = typename base::Array<base::trie_node<T,init_size>,init_size>;
+            _type_node next_nodes;
+            T type_val = T(0);
+            bool is_str = false;
+            trie_node(const T& val):type_val(val){};
+            trie_node(){};
+            inline trie_node* find(const T& val){
+                for (auto& itr : next_nodes)if (itr.type_val == val)return &itr;
+                return nullptr;
+            };
+            inline trie_node* insert_node(const T& val){
+                this->next_nodes.push(trie_node(val));
+                return this->next_nodes.last();
+            };
+            inline bool is_no_end(){
+                return next_nodes.size();
+            };
+        };
+        template<typename T,ull init_size = 0x10,typename base::enable_if<base::is_character<T>::value>::type* = nullptr>class TrieTree{
+        public:
+            using value_type = T;
+            using str_t = base::String<T,init_size>;
+            using node_t = base::trie_node<T,init_size>;
+            using loop_t = base::Array<ull,init_size>;
+            using loop_node_t = base::Array<node_t*,init_size>;
+            using loop_all_str_t = base::Array<str_t,init_size>;
+            node_t root;
+            TrieTree(){};
+            inline bool find(const str_t& fstr){
+                ull pos = 0;
+                ull msize = fstr.data.size();
+                node_t* next_node = &root;
+                while (next_node->is_no_end() && (pos < msize)){
+                    next_node = next_node->find(fstr[pos]);
+                    ++pos;
+                    if (next_node)continue;
+                    return false;
+                };
+                if (msize != pos || !next_node->is_str)return false;
+                return true;
+            };
+            inline node_t* find_prefix(const str_t& fstr){
+                ull pos = 0;
+                ull msize = fstr.data.size();
+                node_t* next_node = &root;
+                while (next_node->is_no_end() && (pos < msize)){
+                    next_node = next_node->find(fstr[pos]);
+                    ++pos;
+                    if (next_node)continue;
+                    return nullptr;
+                };
+                if (msize != pos)return nullptr;
+                return next_node;
+            };
+            inline node_t* search(node_t* beg_node,const T& val){
+                if (!beg_node)return nullptr;
+                if (val == beg_node->type_val)return beg_node;
+                node_t* ptr = nullptr;
+                for (auto& itr : beg_node->next_nodes)if (ptr = search(&itr,val))return ptr;
+                return nullptr;
+            };
+            inline void insert(const str_t& fstr){
+                ull msize = fstr.data.size();
+                ull idx = 0;
+                node_t* bnode = &this->root;
+                node_t* last_node = bnode;
+                while (idx < msize){
+                    last_node = bnode;
+                    bnode = bnode->find(fstr[idx]);
+                    if (!bnode)bnode = last_node->insert_node(fstr[idx]);
+                    ++idx;
+                };
+                bnode->is_str = true;
+            };
+            inline bool del_str(const str_t& fstr){
+                if (!this->find(fstr))return false;
+                if (fstr.data.size() == 1){
+                    this->root.find(fstr[0])->is_str = false;
+                    return true;
+                };
+                ull idx = 0;
+                node_t* fptr = &this->root;
+                base::Array<node_t*,init_size>tmp_vec;
+                while (fptr = this->search(fptr,fstr[idx])){
+                    ++idx;
+                    tmp_vec.push(fptr);
+                };
+                idx = tmp_vec.size() - 1;
+                for (;idx > 0;--idx)if (tmp_vec[idx]->next_nodes.size() > 1)break;
+                node_t* tmp = tmp_vec[idx];
+                if (!idx){
+                    tmp_vec.last()->is_str = false;
+                    goto step;
+                };
+                tmp->next_nodes.erase(tmp->find(((node_t*)tmp_vec[idx + 1])->type_val) - tmp->next_nodes.begin());
+            step:
+                return true;
+            };
+            bool _go_back(loop_node_t& path_array,node_t*& last_node){
+                if (path_array.size() == 1)return false;
+                last_node = *path_array.pop();
+                while ((path_array.size() > 1) && ((*path_array.last())->next_nodes.size() == 1))last_node = *path_array.pop();
+                return true;
+            };
+            inline bool _loop(node_t* node,loop_node_t& path_array){
+                node_t* tnode = node;
+                if (!path_array.size()){
+                    path_array.push(tnode);
+                    while (tnode->is_no_end() && !tnode->is_str){
+                        tnode = &tnode->next_nodes[0];
+                        path_array.push(tnode);
+                    };
+                    return true;
+                };
+                tnode = *path_array.last();
+                if (tnode->is_no_end()){
+                    tnode = &tnode->next_nodes[0];
+                    path_array.push(tnode);
+                    while (tnode->is_no_end() && !tnode->is_str){
+                        tnode = &tnode->next_nodes[0];
+                        path_array.push(tnode);
+                    };
+                    return true;
+                } else{
+                    node_t* last_node = nullptr;
+                    node_t* lastnode = nullptr;
+                    while (_go_back(path_array,last_node)){
+                        lastnode = *path_array.last();
+                        if (lastnode->next_nodes.size() > 1){
+                            if (last_node != lastnode->next_nodes.last()){
+                                path_array.push(last_node + 1);
+                                return this->_loop(node,path_array);
+                            };
+                        };
+                    };
+                    if (path_array.size() == 1){
+                        if (last_node != (*path_array[0]).next_nodes.last()){
+                            path_array.push(last_node + 1);
+                            return this->_loop(node,path_array);
+                        };
+                    };
+                    return false;
+                };
+                return true;
+            };
+            inline str_t _build_str(loop_node_t& path_array){
+                ull idx = 1;
+                ull msize = path_array.size();
+                str_t tmp;
+                while (idx < msize)tmp.data.push(path_array[idx++]->type_val);
+                return tmp;
+            };
+            inline str_t get_next(const str_t& prefix_str,loop_node_t& path_array,node_t* f_node = nullptr){
+                node_t* snode = f_node;
+                if (!snode)snode = this->find_prefix(prefix_str);
+                if (!snode)return "";
+                if (this->_loop(snode,path_array))return this->_build_str(path_array);
+                return "";
+            };
+            inline void get_next_all(const str_t& prefix_str,loop_all_str_t& str_array){
+                loop_node_t path_array;
+                node_t* snode = this->find_prefix(prefix_str);
+                if (!snode)return;
+                while (this->_loop(snode,path_array))str_array.push(this->_build_str(path_array));
+            };
+        };
+        template<typename T>using trie_tree = TrieTree<T>;
+        template<typename T,ull init_size = 0x10>struct trie_tree_types{ //recommendation
+        public:
+            using tree_t = typename base::TrieTree<T,init_size>;
+            using node_t = typename tree_t::node_t;
+            using value_type = typename tree_t::value_type;
+            using str_t = typename tree_t::str_t;
+            using loop_t = typename tree_t::loop_t;
+            using loop_node_t = typename tree_t::loop_node_t;
+            using loop_all_str_t = typename tree_t::loop_all_str_t;
+        };
+        //using trie = KUR::base::trie_tree_types<char>;
     };
 };
