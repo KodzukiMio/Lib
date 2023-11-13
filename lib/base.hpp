@@ -332,6 +332,7 @@ namespace KUR{
     //_KUR_TEMPLATE_T_IS(T2)
     #define _KUR_TEMPLATE_T_IS(Is_Ty) _KUR_TEMPLATE_TYPE_IS(T,Is_Ty) 
     #pragma warning(disable : 6385)
+    #pragma warning(disable : 6386)
         template<typename Type,ull init_size = 0x10>class Array{
         public:
             bool _allow_del = true;
@@ -533,7 +534,13 @@ namespace KUR{
                 return result;
             };
             inline ull size(){
-                return data.size() - 1;
+                return data.size();
+            };
+            inline Tchar* begin(){
+                return this->data.begin();
+            };
+            inline Tchar* end(){
+                return this->data.end();
             };
         #if __has_include(<iostream>)
             friend typename base::CharT<Tchar>::out_t& operator<<(typename base::CharT<Tchar>::out_t& os,const String<Tchar>& str){
@@ -791,7 +798,7 @@ namespace KUR{
             using tree_t = base::tree<T,init_size>;//Tree type
             using node_t = base::_tree_search_t<T,init_size>;//Tree::Node type
         };
-        template<typename T,ull init_size = 0x10,typename base::enable_if<base::is_character<T>::value>::type* = nullptr>class trie_node{
+        template<typename T,ull init_size = 0x10>class trie_node{
         public:
             using value_type = T;
             using _type_node = typename base::Array<base::trie_node<T,init_size>,init_size>;
