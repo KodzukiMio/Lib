@@ -1,2 +1,2 @@
 # Lib
-dev.hpp只能用于MSVC
+dev.hpp,写得太烂了,只能用于MSVC
