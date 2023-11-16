@@ -2,6 +2,7 @@
 #ifndef _kurzerbase_
 #define _kurzerbase_
 #endif
+#include<type_traits>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -16,6 +17,7 @@ namespace KUR{
         };
         template<typename T>class Holder: public Object{
         public:
+            static_assert(std::is_copy_constructible<T>::value,"Type T must be copy constructible for Holder");
             T data;
             Holder(const T& _data,size_t _type_id): Object(_type_id),data(_data){};
             std::unique_ptr<Object> clone() const override{
