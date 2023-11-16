@@ -80,8 +80,8 @@ namespace KUR{
                 ++_size;
             };
             inline void pop(){
-                store.del(_size);
                 --_size;
+                store.del(_size);
             };
             template<typename T>inline T& get(const size_t idx){
                 return store.template get<T>(idx);
