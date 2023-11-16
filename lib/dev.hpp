@@ -132,7 +132,7 @@
     {                        \
         return 0;            \
     }
-#include "base.hpp"
+#include "plus.hpp"
 typedef unsigned short int KCDSTR;
 namespace KUR{
     namespace LB2022{

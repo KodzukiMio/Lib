@@ -1,30 +1,19 @@
 ﻿//2023-2024
 //适用于 C++17 及以上标准
-/*
-199711L - C++98 | C++03
-201103L - C++11
-201402L - C++14
-201703L - C++17
-202002L - C++20
-*/
 #pragma once
 #ifndef _kurzerbase_
 #define _kurzerbase_
 #endif
 /* #define options:
 *  KURZER_ENABLE_EXCEPTIONS
-*
 */
 #ifdef NDEBUG //release
-
 #else //debug
 #define KURZER_ENABLE_EXCEPTIONS
 #endif // NDEBUG
-
 #ifdef KURZER_ENABLE_EXCEPTIONS
 #include<stdexcept>
 #endif // KURZER_ENABLE_EXCEPTIONS
-
 namespace KUR{
     namespace base{
         //size_t
@@ -56,6 +45,7 @@ namespace KUR{
         #endif // _XSTRING_
         #if __has_include(<iostream>)
             using out_t = std::basic_ostream<Tchar,std::char_traits<Tchar>>;
+            using in_t =std::basic_istream<Tchar,std::char_traits<Tchar>>;
         #endif // _IOSTREAM_
         };
         //typename base::enable_if<TRUE?>::type* = nullptr
@@ -127,17 +117,17 @@ namespace KUR{
             while (*p)++p;
             return p - str;
         };
-        template<typename T>inline T max(T _Left,T _Right){
+        template<typename T>inline T maximum(T _Left,T _Right){
             return ((_Left) < (_Right)) ? (_Right) : (_Left);
         };
-        template<typename T>inline T min(T _Left,T _Right){
+        template<typename T>inline T minimum(T _Left,T _Right){
             return ((_Left) < (_Right)) ? (_Left) : (_Right);
         };
         template<typename T>inline T gcd(const T& _Lv,const T& _Rv){
             return !_Rv ? _Lv : base::gcd(_Rv,_Lv % _Rv);
         };
-        template <typename _Itr>void reverse(_Itr _Begin,_Itr _End){
-            while (_Begin != _End){
+        template <typename _Itr>void reverse(_Itr* _Begin,_Itr* _End){
+            while (_Begin < _End){
                 --_End;
                 _Itr _Tmp = *_Begin;
                 *_Begin = *_End;
@@ -157,7 +147,7 @@ namespace KUR{
             };
             return _End;
         };
-        template<typename _Ty,typename _Itr,typename base::enable_if<base::allow_equal_operator<_Ty,decltype(*base::declval<_Itr>())>::value>::type* = nullptr>inline _Itr find(_Itr _Begin,_Itr _End,const _Ty _Cmp_Val){//need operator ==
+        template<typename _Ty,typename _Itr,typename base::enable_if<base::allow_equal_operator<_Ty,decltype(*base::declval<_Itr>())>::value>::type* = nullptr>inline _Itr find(_Itr _Begin,_Itr _End,const _Ty& _Cmp_Val){//need operator ==
             while (_Begin != _End){
                 if (*_Begin == base::move(_Cmp_Val))return _Begin;
                 ++_Begin;
@@ -298,8 +288,8 @@ namespace KUR{
             _Tp _Lower = *_Begin;
             _Tp _Upper = *_Begin;
             while (_Begin < _End){
-                _Lower = base::min(*_Begin,_Lower);
-                _Upper = base::max(*_Begin,_Upper);
+                _Lower = base::minimum(*_Begin,_Lower);
+                _Upper = base::maximum(*_Begin,_Upper);
                 ++_Begin;
             };
             _Out_Lower = _Lower;
@@ -485,6 +475,7 @@ namespace KUR{
         public:
             base::Array<Tchar,baseN> data;
             String(){};
+            using value_type = Tchar;
             String(const Tchar* tch){
                 this->Write(tch);
             };
@@ -819,11 +810,10 @@ namespace KUR{
                 return next_nodes.size();
             };
         };
-        template<typename T,ull init_size = 0x10,typename base::enable_if<base::is_character<T>::value>::type* = nullptr>class TrieTree{
+        template<typename T,ull init_size = 0x10,typename node_t = base::trie_node<T,init_size>,typename base::enable_if<base::is_character<T>::value>::type* = nullptr>class TrieTree{
         public:
             using value_type = T;
             using str_t = base::String<T,init_size>;
-            using node_t = base::trie_node<T,init_size>;
             using loop_t = base::Array<ull,init_size>;
             using loop_node_t = base::Array<node_t*,init_size>;
             using loop_all_str_t = base::Array<str_t,init_size>;
@@ -966,8 +956,13 @@ namespace KUR{
                 if (!snode)return;
                 while (this->_loop(snode,path_array))str_array.push(this->_build_str(path_array));
             };
+            inline node_t* find_suffix_first(const str_t& suffix_str,node_t* base_node){
+                //TODO:寻找第一个符合后缀的节点
+                return nullptr;
+            };
         };
         template<typename T>using trie_tree = TrieTree<T>;
+        //using trie = KUR::base::trie_tree_types<char>;
         template<typename T,ull init_size = 0x10>struct trie_tree_types{ //recommendation
         public:
             using tree_t = typename base::TrieTree<T,init_size>;
@@ -978,6 +973,61 @@ namespace KUR{
             using loop_node_t = typename tree_t::loop_node_t;
             using loop_all_str_t = typename tree_t::loop_all_str_t;
         };
-        //using trie = KUR::base::trie_tree_types<char>;
+        template<typename T,ull init_size = 0x10>class trie_ac_node{
+        public:
+            using value_type = T;
+            using _type_node = typename base::Array<base::trie_ac_node<T,init_size>,init_size>;
+            _type_node next_nodes;
+            T type_val = T(0);
+            bool is_str = false;
+            trie_ac_node* fail_node_ptr = nullptr;
+            trie_ac_node(const T& val):type_val(val){};
+            trie_ac_node(){};
+            inline trie_ac_node* find(const T& val){
+                for (auto& itr : next_nodes)if (itr.type_val == val)return &itr;
+                return nullptr;
+            };
+            inline trie_ac_node* insert_node(const T& val){
+                this->next_nodes.push(trie_ac_node(val));
+                return this->next_nodes.last();
+            };
+            inline bool is_no_end(){
+                return next_nodes.size();
+            };
+        };
+        template<typename T,ull init_size = 0x10>class Aho_Corasick:public TrieTree<T,init_size,trie_ac_node<T,init_size>>{
+        public:
+            using _type = Aho_Corasick;
+            using node_t = trie_ac_node<T,init_size>;
+            using value_type = T;
+            using str_t = base::String<T,init_size>;
+            using loop_t = base::Array<ull,init_size>;
+            using loop_node_t = base::Array<node_t*,init_size>;
+            using loop_all_str_t = base::Array<str_t,init_size>;
+            Aho_Corasick(){};
+            inline void update(loop_node_t& path_array){
+                str_t fstr = this->_build_str(path_array);
+                base::reverse<str_t::value_type>(fstr.begin(),fstr.end());
+                node_t* fnode = nullptr;
+                while (!fnode && fstr.data.pop())fnode = this->find_suffix_first(fstr,&this->root);
+                if (!fnode)fnode = &this->root;
+                ((node_t*)(*path_array.last()))->fail_node_ptr = fnode;
+            };
+            inline void finish(){
+                loop_node_t path_array;
+                while (this->_loop(&this->root,path_array)){
+                    loop_node_t tmp = path_array;
+                    while (tmp.size()){
+                        this->update(tmp);
+                        tmp.pop();
+                    }
+                };
+            };
+            inline ull check(const str_t& fstr){//TODO:匹配字符串
+                return -1;
+            };
+        };
+        template<typename T>using aho_corasick = Aho_Corasick<T>;
     };
 };
+namespace kurzer = KUR::base;
