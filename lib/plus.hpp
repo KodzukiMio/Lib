@@ -91,7 +91,7 @@ namespace KUR{
                 return this->store.get_type(idx);
             };
         };
-        int UBIDB2(std::string& num){ // u dec / 2
+        int UBIDB2(std::string& num){ // u dec / 2,return remainder
             int tmp = 0;
             std::string stmp;
             for (auto c : num){
@@ -108,25 +108,119 @@ namespace KUR{
             std::reverse(bin.begin(),bin.end());
             return bin.empty() ? "0" : bin;
         };
-        std::string UBIPBI(std::string p0,std::string p1){// u dec + dec
+        std::string _UBIPBI(std::string& L,std::string& R){// u dec + dec,reverse
             std::string str;
-            size_t s0 = p0.size();
-            size_t s1 = p1.size();
+            size_t s0 = L.size();
+            size_t s1 = R.size();
             size_t smx = std::max(s0,s1);
             size_t idx = 0;
             int carry = 0;
-            std::reverse(p0.begin(),p0.end());
-            std::reverse(p1.begin(),p1.end());
             while (idx < smx){
-                if (idx < s0)carry += p0[idx] - '0';
-                if (idx < s1)carry += p1[idx] - '0';
+                if (idx < s0)carry += L[idx] - '0';
+                if (idx < s1)carry += R[idx] - '0';
                 str.push_back('0' + carry % 10);
                 carry /= 10;
                 ++idx;
             };
             if (carry)str.push_back('1');
+            return str;
+        };
+        std::string UBIPBI(std::string L,std::string R){// u dec + dec
+            std::reverse(L.begin(),L.end());
+            std::reverse(R.begin(),R.end());
+            std::string str = _UBIPBI(L,R);
             std::reverse(str.begin(),str.end());
             return str;
+        };
+        std::string _UBISBI(std::string& L,std::string& R){//u dec - dec, L >= R,reverse
+            std::string ret = "";
+            size_t idx = 0;
+            int carry = 0;
+            size_t _Lsize = L.size(),_Rsize = R.size();
+            while (idx < _Lsize){
+                carry = L[idx] - '0' - carry;
+                if (idx < _Rsize)carry -= (R[idx] - '0');
+                ret.push_back((carry + 0xA) % 0xA + '0');
+                if (carry < 0)carry = 1;
+                else carry = 0;
+                ++idx;
+            };
+            while (ret.back() == '0' && ret.size() > 1)ret.pop_back();
+            return ret;
+        };
+        std::string UBISBI(std::string L,std::string R){//u dec - dec, L >= R
+            std::reverse(L.begin(),L.end());
+            std::reverse(R.begin(),R.end());
+            std::string ret = _UBISBI(L,R);
+            std::reverse(ret.begin(),ret.end());
+            return ret;
+        };
+        std::string _UBIMBI(std::string& L,std::string& R){//u dec * dec,reverse
+            std::string ret = "0";
+            size_t idx = 0;
+            int carry = 0;
+            std::string tmp = "";
+            size_t _Lsize = L.size(),_Rsize = R.size();
+            while (idx < _Lsize){
+                int _nt = L[idx] - '0';
+                for (size_t idxr = 0;idxr < _Rsize;++idxr){
+                    carry = _nt * (R[idxr] - '0') + carry;
+                    tmp.push_back(carry % 0xA + '0');
+                    carry /= 0xA;
+                };
+                if (carry)tmp.push_back(carry + '0');
+                carry = 0;
+                int ofx = idx + 1;
+                std::string _zero = "";
+                while (--ofx)_zero.push_back('0');
+                tmp.insert(0,_zero);
+                ret = _UBIPBI(ret,tmp);
+                tmp.clear();
+                ++idx;
+            };
+            while (ret.size() > 1 && ret.back() == '0')ret.pop_back();
+            return ret;
+        };
+        std::string UBIMBI(std::string L,std::string R){//u dec * dec
+            std::reverse(L.begin(),L.end());
+            std::reverse(R.begin(),R.end());
+            std::string ret = _UBIMBI(L,R);
+            std::reverse(ret.begin(),ret.end());
+            return ret;
+        };
+        bool UBIDBI_CMP(std::string& L,std::string& R){//L >= R ?
+            if (L.size() > R.size())return true;
+            if (L.size() < R.size())return false;
+            size_t idx = 0;
+            size_t _idx = L.size() - 1;
+            while (idx < _idx){
+                if (L[idx] ^ R[idx])return L[idx] > R[idx];
+                ++idx;
+            };
+            if (idx == _idx)return L[idx] >= R[idx];
+            return false;
+        };
+        std::string UBIDBI(std::string L,std::string R,std::string& _remainder){//u dec / dec
+            size_t Lsize = L.size(),Rsize = R.size(),idx,tmp = 0;
+            idx = Lsize - Rsize;
+            std::string ret;
+            while (tmp < idx && ++tmp)R.push_back('0');
+            tmp = 0;
+            while (tmp <= idx){
+                size_t carry = 0;
+                while (UBIDBI_CMP(L,R)){
+                    L = UBISBI(L,R);
+                    ++carry;
+                };
+                ret.push_back(carry + '0');
+                ++tmp;
+                R.pop_back();
+            };
+            _remainder = L;
+            tmp = 0;
+            while (ret[tmp] == '0')++tmp;
+            if (tmp)return ret.erase(0,tmp);
+            return ret;
         };
         std::string UBTBI(const std::string& bin){ // u bin -> dec
             std::string ret = "0";
