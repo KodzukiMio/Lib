@@ -45,7 +45,7 @@ namespace KUR{
         #endif // _XSTRING_
         #if __has_include(<iostream>)
             using out_t = std::basic_ostream<Tchar,std::char_traits<Tchar>>;
-            using in_t =std::basic_istream<Tchar,std::char_traits<Tchar>>;
+            using in_t = std::basic_istream<Tchar,std::char_traits<Tchar>>;
         #endif // _IOSTREAM_
         };
         //typename base::enable_if<TRUE?>::type* = nullptr
@@ -353,6 +353,15 @@ namespace KUR{
                 this->_size = initSize;
                 this->_chunk = Malloc(initSize);
             };
+            inline void move_from(Array&& other)noexcept{
+                if (_chunk)delete _chunk;
+                this->_chunk = other._chunk;
+                this->_size = other._size;
+                this->_pos = other._pos;
+                other._chunk = nullptr;
+                other._size = 0;
+                other._pos = 0;
+            };
             Array(const Array& other): _size(other._size),_pos(other._pos){
                 _chunk = new Type[_size];
                 for (ull i = 0; i < _pos; ++i)_chunk[i] = other._chunk[i];
@@ -378,7 +387,6 @@ namespace KUR{
             };
             Array& operator=(const Array& other){
                 if (this != &other){
-                    if (!this->capacity())return *this;
                     if (_chunk)delete[] _chunk;
                     _size = other._size;
                     _pos = other._pos;
@@ -479,6 +487,19 @@ namespace KUR{
             String(const Tchar* tch){
                 this->Write(tch);
             };
+            String(const base::Array<Tchar>& arr){
+                this->Write(arr._chunk);
+            };
+            String(const bool* _bl,const ull _size){
+                ull idx = 0;
+                while (idx < _size)this->data.push(_bl[idx++]);
+            };
+            String(const String&& tch)noexcept{
+                this->data = tch.data;
+            };
+            String(const String& tch){
+                this->data = tch.data;
+            };
             inline Tchar& operator[](const ull pos){
                 return data[pos];
             };
@@ -533,6 +554,15 @@ namespace KUR{
             inline Tchar* end(){
                 return this->data.end();
             };
+            inline bool empty(){
+                return this->data._pos;
+            };
+            inline void push_back(Tchar* str){
+                this->Write(str);
+            };
+            inline void push_back(Tchar str){
+                this->data.push(str);
+            };
         #if __has_include(<iostream>)
             friend typename base::CharT<Tchar>::out_t& operator<<(typename base::CharT<Tchar>::out_t& os,const String<Tchar>& str){
                 ull _len = str.data.size();
@@ -541,8 +571,8 @@ namespace KUR{
             };
         #endif
         };
-        using string = String<char,0x10>;
-        using wstring = String<wchar_t,0x10>;
+        using string = String<char>;
+        using wstring = String<wchar_t>;
         template<typename T,ull _BaseN = 0x10> class Queue{
         private:
             ull _head = 0;
