@@ -820,9 +820,11 @@ namespace KUR{
             };
             return out;
         };
+        using __ntype_int = long long;
+        using __ntype_dec = double;
         class NumberType{
         public:
-            double val = 0;
+            __ntype_dec val = 0;
             bool is_int = 0;
             bool no_flag = false;
             std::string valname;
@@ -830,13 +832,13 @@ namespace KUR{
             NumberType(bool flag = 0){
                 no_flag = flag;
             };
-            NumberType(double _val,bool _is_int,TokenType _type):val(_val),is_int(_is_int),type(_type){};
-            NumberType(double _val,bool _is_int,TokenType _type,const std::string& _valname):val(_val),is_int(_is_int),type(_type),valname(_valname){};
+            NumberType(__ntype_dec _val,bool _is_int,TokenType _type):val(_val),is_int(_is_int),type(_type){};
+            NumberType(__ntype_dec _val,bool _is_int,TokenType _type,const std::string& _valname):val(_val),is_int(_is_int),type(_type),valname(_valname){};
             inline bool is_val(){
                 return valname.size();
             };
-            inline double get(){
-                if (is_int)return (long long)val;
+            inline __ntype_dec get(){
+                if (is_int)return (__ntype_int)val;
                 return val;
             };
         };
@@ -907,8 +909,8 @@ namespace KUR{
                         };
                         tmp = L.val - 1;
                         break;
-                    case KUR::plus::TokenType::Not:      //TODO,;
-                        tmp = ~(long long)L.val;
+                    case KUR::plus::TokenType::Not:      //TODO,variable;
+                        tmp = ~(__ntype_int)L.val;
                         break;
                     case KUR::plus::TokenType::Emark:
                         tmp = !L.val;
@@ -920,7 +922,7 @@ namespace KUR{
                         tmp = L.val / R.val;
                         break;
                     case KUR::plus::TokenType::Modulo:
-                        tmp = (long long)L.val % (long long)R.val;
+                        tmp = (__ntype_int)L.val % (__ntype_int)R.val;
                         break;
                     case KUR::plus::TokenType::Add:
                         tmp = L.val + R.val;
@@ -929,10 +931,10 @@ namespace KUR{
                         tmp = L.val - R.val;
                         break;
                     case KUR::plus::TokenType::ShiftLeft:
-                        tmp = (long long)L.val << (long long)R.val;
+                        tmp = (__ntype_int)L.val << (__ntype_int)R.val;
                         break;
                     case KUR::plus::TokenType::ShiftRight:
-                        tmp = (long long)L.val >> (long long)R.val;
+                        tmp = (__ntype_int)L.val >> (__ntype_int)R.val;
                         break;
                     case KUR::plus::TokenType::LessThan:
                         tmp = L.val < R.val;
@@ -947,29 +949,29 @@ namespace KUR{
                         tmp = L.val >= R.val;
                         break;
                     case KUR::plus::TokenType::EqualTo:
-                        if (L.is_int)tmp = (long long)L.val == (long long)R.val;
+                        if (L.is_int)tmp = (__ntype_int)L.val == (__ntype_int)R.val;
                         else tmp = L.val == R.val;
                         break;
                     case KUR::plus::TokenType::NotEqualTo:
-                        if (L.is_int)tmp = (long long)L.val != (long long)R.val;
+                        if (L.is_int)tmp = (__ntype_int)L.val != (__ntype_int)R.val;
                         else tmp = L.val != R.val;
                         break;
                     case KUR::plus::TokenType::And:
-                        tmp = (long long)L.val & (long long)R.val;
+                        tmp = (__ntype_int)L.val & (__ntype_int)R.val;
                         break;
                     case KUR::plus::TokenType::Xor:
-                        tmp = (long long)L.val ^ (long long)R.val;
+                        tmp = (__ntype_int)L.val ^ (__ntype_int)R.val;
                         break;
                     case KUR::plus::TokenType::Or:
-                        tmp = (long long)L.val | (long long)R.val;
+                        tmp = (__ntype_int)L.val | (__ntype_int)R.val;
                         break;
                     case KUR::plus::TokenType::LogicalAnd:
-                        if (L.is_int)tmp = (long long)L.val && (long long)R.val;
+                        if (L.is_int)tmp = (__ntype_int)L.val && (__ntype_int)R.val;
                         else tmp = L.val && R.val;
                         break;
                     case KUR::plus::TokenType::LogicalOr:
                         if (L.is_int){
-                            tmp = (long long)L.val || (long long)R.val;
+                            tmp = (__ntype_int)L.val || (__ntype_int)R.val;
                         } else{
                             tmp = L.val || R.val;
                         };
@@ -996,7 +998,7 @@ namespace KUR{
                         tmp = v.val;
                         break;
                     case KUR::plus::TokenType::ModuloAssign:
-                        v.val = (long long)v.val % (long long)R.val;
+                        v.val = (__ntype_int)v.val % (__ntype_int)R.val;
                         tmp = v.val;
                         break;
                 };
@@ -1008,8 +1010,8 @@ namespace KUR{
             std::string ret;
             bool is_int = false;
             int oprc = 2;
-            double retd = 0;
-            long long retl = 0;
+            __ntype_dec retd = 0;
+            __ntype_int retl = 0;
             for (size_t i = 0;i < tokens.size();++i){
                 auto& token = tokens[i];
                 is_int = false;
@@ -1020,8 +1022,8 @@ namespace KUR{
                     oprc = Calculate::get_opr_c(token.type);
                     if (oprc == 1){
                         auto& _R = vec.back();
-                        if (_R.is_int)retl = Calculate::calculate<long long>(token.type,_R,0,store);
-                        else retd = Calculate::calculate<double>(token.type,_R,0,store);
+                        if (_R.is_int)retl = Calculate::calculate<__ntype_int>(token.type,_R,0,store);
+                        else retd = Calculate::calculate<__ntype_dec>(token.type,_R,0,store);
                         bool _is = _R.is_int;
                         auto type = _R.type;
                         vec.pop_back();
@@ -1033,8 +1035,8 @@ namespace KUR{
                         bool div = true;
                         if (token.type == TokenType::Divide || token.type == TokenType::DivideAssign)div = true && mode;
                         bool _is = _L.is_int && _R.is_int && div;
-                        if (_is)retl = Calculate::calculate<long long>(token.type,_L,_R,store);
-                        else retd = Calculate::calculate<double>(token.type,_L,_R,store);
+                        if (_is)retl = Calculate::calculate<__ntype_int>(token.type,_L,_R,store);
+                        else retd = Calculate::calculate<__ntype_dec>(token.type,_L,_R,store);
                         auto type = _L.type;
                         vec.pop_back();
                         vec.pop_back();
@@ -1053,11 +1055,11 @@ namespace KUR{
             };
             auto& v0 = vec[0];
             if (isvar(v0.type)){
-                if (v0.is_int)ret = std::to_string((long long)store.get<NumberType>(v0.valname).val);
+                if (v0.is_int)ret = std::to_string((__ntype_int)store.get<NumberType>(v0.valname).val);
                 else ret = std::to_string(store.get<NumberType>(v0.valname).val);
                 return ret;
             };
-            if (v0.is_int)ret = std::to_string((long long)v0.get());
+            if (v0.is_int)ret = std::to_string((__ntype_int)v0.get());
             else ret = std::to_string(v0.get());
             return ret;
         };
