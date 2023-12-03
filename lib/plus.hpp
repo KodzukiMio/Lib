@@ -909,7 +909,7 @@ namespace KUR{
                         };
                         tmp = L.val - 1;
                         break;
-                    case KUR::plus::TokenType::Not:      //TODO,���ӶԱ�����֧��;
+                    case KUR::plus::TokenType::Not:      //TODO,;
                         tmp = ~(long long)L.val;
                         break;
                     case KUR::plus::TokenType::Emark:
@@ -1014,7 +1014,7 @@ namespace KUR{
                 return tmp;
             };
         };
-        std::string evaluate(std::vector<Token>& tokens,Storage<std::string>& store){
+        std::string evaluate(std::vector<Token>& tokens,Storage<std::string>& store,bool mode){
             std::vector<plus::NumberType>vec;
             std::string ret;
             bool is_int = false;
@@ -1050,13 +1050,12 @@ namespace KUR{
                     } else if (oprc == 2){
                         auto& _L = vec[vec.size() - 2];
                         auto& _R = vec.back();
-                        if (_L.is_int){
-                            retl = Calculate::calculate<long long>(token.type,_L,_R,store);
-                        } else{
-                            retd = Calculate::calculate<double>(token.type,_L,_R,store);
-                        };
+                        bool div = true;
+                        if (token.type == TokenType::Divide || token.type == TokenType::DivideAssign)div = true && mode;
+                        bool _is = _L.is_int && _R.is_int && div;
+                        if (_is)retl = Calculate::calculate<long long>(token.type,_L,_R,store);
+                        else retd = Calculate::calculate<double>(token.type,_L,_R,store);
                         auto type = _L.type;
-                        bool _is = _L.is_int;
                         vec.pop_back();
                         vec.pop_back();
                         if (_is){
@@ -1091,17 +1090,18 @@ namespace KUR{
             };
             return ret;
         };
-        inline std::string eval(const std::string& expr,Storage<std::string>& store){
+        inline std::string eval(const std::string& expr,Storage<std::string>& store,bool mode){
             auto tokens = convert_token_rpn(build_token_msg(expr));
-            return evaluate(tokens,store);
+            return evaluate(tokens,store,mode);
         };
         class Interpreter{
         public:
+            bool mode = false;//true:6/5=1;false:6/5=1.2;
             std::string retstr;
             Storage<std::string>store;
             Interpreter(){};
             std::string& eval(const std::string& expr){
-                this->retstr = plus::eval(expr,store);
+                this->retstr = plus::eval(expr,store,mode);
                 return this->retstr;
             };
         };
