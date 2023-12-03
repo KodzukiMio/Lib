@@ -41,9 +41,11 @@ namespace KUR{
         template <typename>inline constexpr bool _Always_false = false;
         template<typename Tchar> struct CharT{
         #if __has_include(<string>)
+        #include<string>
             using char_t = std::basic_string<Tchar,std::char_traits<Tchar>,std::allocator<Tchar>>;
         #endif // _XSTRING_
         #if __has_include(<iostream>)
+        #include<iostream>
             using out_t = std::basic_ostream<Tchar,std::char_traits<Tchar>>;
             using in_t = std::basic_istream<Tchar,std::char_traits<Tchar>>;
         #endif // _IOSTREAM_

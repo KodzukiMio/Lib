@@ -9,6 +9,9 @@
 #include <unordered_map>
 #include <bitset>
 #include <algorithm>
+#include <map>
+#include <vector>
+#include <stack>
 namespace KUR{
     namespace plus{
         class Object{
@@ -112,7 +115,7 @@ namespace KUR{
             std::string str;
             size_t s0 = L.size();
             size_t s1 = R.size();
-            size_t smx = std::max(s0,s1);
+            size_t smx = s0 > s1 ? s0 : s1;
             size_t idx = 0;
             int carry = 0;
             while (idx < smx){
@@ -535,6 +538,571 @@ namespace KUR{
             friend std::ostream& operator<<(std::ostream& os,Number num){
                 os << num.get();
                 return os;
+            };
+        };
+
+        enum class TokenType{
+            NOPS,
+
+            Lv0,
+            Identifier,
+            Number,
+            Function,
+            // Highest priority (Level 1)
+            Lv1,
+            OpenParen,            // "(" 
+            CloseParen,           // ")" 
+            OpenBracket,          // "[" 
+            CloseBracket,         // "]" 
+            Dot,                  // "." 
+            Arrow,                // "->"
+            // Level 2
+            Lv2,
+            Increment,            // "++" 
+            Decrement,            // "--" 
+            // Level 3
+            Lv3,
+            Not,                  // "~"
+            Emark,                // "!"
+            Multiply,             //*  
+            Divide,               // /  
+            Modulo,               //"%"  
+            // Level 4
+            Lv4,
+            Add,                 //"+"  
+            Subtract,            //"-"  
+            // Level 5
+            Lv5,
+            ShiftLeft,           //"<<"  
+            ShiftRight,          //" >> "  
+            // Level 6
+            Lv6,
+            LessThan,            //<"  
+            GreaterThan,         //" > "  
+            LessThanEqual,       //" <="   
+            GreaterThanEqual,	  ///>="
+            // Level 7
+            Lv7,
+            EqualTo,// "=="
+            NotEqualTo,// "!="
+            // Level 8
+            Lv8,
+            And,// "&"
+            Xor,// "^"
+            Or,// "|"
+            LogicalAnd,// "&&"
+            LogicalOr,// "||"
+
+            Lv9,
+            EqlAssign,// "="
+            AddAssign,// "+="
+            SubtractAssign,// "-="
+            MultiplyAssign,// "*="
+            DivideAssign,// "/="
+            ModuloAssign,// "%="
+
+            Lv10,
+            SingleQuote,//'
+            Qmark,//?
+            DoubleQuote,//"
+            Comma,
+            Colon,
+            OpenBrace,
+            CloseBrace,
+        };
+        std::map<char,TokenType> symbolTable1 = {
+            {'+',TokenType::Add},
+            {'-',TokenType::Subtract},
+            {'*',TokenType::Multiply},
+            {'/',TokenType::Divide},
+            {'%',TokenType::Modulo},
+            {'(',TokenType::OpenParen},
+            {')',TokenType::CloseParen},
+            {'&',TokenType::And},
+            {'|',TokenType::Or},
+            {'^',TokenType::Xor},
+            {'<',TokenType::LessThan},
+            {'>',TokenType::GreaterThan},
+            {',',TokenType::Comma},
+            {'[',TokenType::OpenBracket},
+            {']',TokenType::CloseBracket},
+            {'{',TokenType::OpenBrace},
+            {'}',TokenType::CloseBrace},
+            {':',TokenType::Colon},
+            {'.',TokenType::Dot},
+            {'"',TokenType::DoubleQuote},
+            {'\'',TokenType::SingleQuote},
+            {'?',TokenType::Qmark},
+            {'~',TokenType::Not},
+            {'!',TokenType::Emark},
+            {'=',TokenType::EqlAssign},
+        };
+        std::map<std::string,TokenType> symbolTable2 = {
+            {"==",TokenType::EqualTo},
+            {"!=",TokenType::NotEqualTo},
+            {"<=",TokenType::LessThanEqual},
+            {">=",TokenType::GreaterThanEqual},
+            {"&&",TokenType::LogicalAnd},
+            {"||",TokenType::LogicalOr},
+            {"<<",TokenType::ShiftLeft},
+            {">>",TokenType::ShiftRight},
+            {"++",TokenType::Increment},
+            {"--",TokenType::Decrement},
+            {"->",TokenType::Arrow},
+            {"+=",TokenType::AddAssign},
+            {"-=",TokenType::SubtractAssign},
+            {"*=",TokenType::MultiplyAssign},
+        };
+        inline bool issymbol1(char c){
+            return symbolTable1.find(c) != symbolTable1.end();
+        };
+        inline bool issymbol2(const std::string& str){
+            return symbolTable2.find(str) != symbolTable2.end();
+        };
+        inline bool isvar1(char c){
+            return std::isalpha(c) || c == '_';
+        }
+        inline bool isvar2(char c){
+            return std::isdigit(c) || isvar1(c);
+        }
+        inline bool isdig(TokenType type){
+            return type == TokenType::Number;
+        };
+        inline bool isvar(TokenType type){
+            return type == TokenType::Identifier;
+        };
+        inline bool isopr(TokenType type){
+            return !isdig(type) && !isvar(type);
+        };
+        inline bool isbrace(TokenType type){
+            if (type == TokenType::CloseBrace || type == TokenType::OpenBrace)return true;
+            return false;
+        };
+        inline bool isparen(TokenType type){
+            if (type == TokenType::CloseParen || type == TokenType::OpenParen)return true;
+            return false;
+        };
+        std::vector<std::string> tokenize(const std::string& expr){
+            std::vector<std::string> tokens;
+            std::string number;
+            std::string var;
+            std::string tcop;
+            char tmp;
+            for (size_t i = 0; i < expr.size(); ++i){
+                tmp = expr[i];
+                if (isvar1(tmp)){
+                    var.push_back(tmp);
+                    continue;
+                }
+                if (!var.empty()){
+                    if (isvar2(tmp)){
+                        var.push_back(tmp);
+                    } else{
+                        tokens.push_back(var);
+                        var.clear();
+                    }
+                }
+                if (!number.empty() && !std::isdigit(tmp) && tmp != '.'){
+                    tokens.push_back(number);
+                    number.clear();
+                }
+                if ((std::isdigit(tmp) || tmp == '.' || (tmp == '-' && i + 1 < expr.size() && isdigit(expr[i + 1]) && i >= 1 && !isdigit(expr[i - 1]) && expr[i - 1] != ')') || (tmp == '-' && !i)) && var.empty()){
+                    number.push_back(tmp);
+                    continue;
+                }
+                if (i + 1 < expr.size()){
+                    tcop = {tmp,expr[i + 1]};
+                    if (issymbol2(tcop)){
+                        tokens.push_back(tcop);
+                        i++;
+                        continue;
+                    }
+                }
+                if (issymbol1(tmp)){
+                    tokens.push_back(std::string(1,tmp));
+                    continue;
+                }
+                //err type...
+            }
+            if (!number.empty())tokens.push_back(number);
+            if (!var.empty())tokens.push_back(var);
+            return tokens;
+        };
+        size_t get_lvl(TokenType type){
+            if (type < TokenType::Lv10){
+                if (type < TokenType::Lv9){
+                    if (type < TokenType::Lv8){
+                        if (type < TokenType::Lv7){
+                            if (type < TokenType::Lv6){
+                                if (type < TokenType::Lv5){
+                                    if (type < TokenType::Lv4){
+                                        if (type < TokenType::Lv3){
+                                            if (type < TokenType::Lv2){
+                                                if (type < TokenType::Lv1){
+                                                    return (size_t)TokenType::Lv0;
+                                                }
+                                                return (size_t)TokenType::Lv1;
+                                            }
+                                            return (size_t)TokenType::Lv2;
+                                        }
+                                        return (size_t)TokenType::Lv3;
+                                    }
+                                    return (size_t)TokenType::Lv4;
+                                }
+                                return (size_t)TokenType::Lv5;
+                            }
+                            return (size_t)TokenType::Lv6;
+                        }
+                        return (size_t)TokenType::Lv7;
+                    }
+                    return (size_t)TokenType::Lv8;
+                }
+                return (size_t)TokenType::Lv9;
+            }
+            return (size_t)TokenType::Lv10;
+        };
+        class Token{
+        public:
+            std::string val;
+            TokenType type;
+            size_t lvl = 0;
+            bool is_int = 0;
+            Token(const std::string& _val,TokenType _type):val(_val),type(_type){
+                this->lvl = get_lvl(type);
+            };
+        };
+        std::vector<Token> handle_token_msg(const std::vector<std::string>& src_tokens){
+            std::vector<Token> tokens;
+            bool is_number;
+            for (const auto& str : src_tokens){
+                if (str.empty()) continue;
+                if (str.length() == 2 && issymbol2(str))tokens.emplace_back(str,symbolTable2[str]);
+                else if (str.length() == 1 && issymbol1(str[0]))tokens.emplace_back(str,symbolTable1[str[0]]);
+                else{
+                    is_number = false;
+                    if (str[0] == '-' || str[0] == '+' || std::isdigit(str[0]))is_number = true;
+                    TokenType type = is_number ? TokenType::Number : TokenType::Identifier;
+                    tokens.emplace_back(str,type);
+                }
+            }
+            return tokens;
+        };
+        inline std::vector<Token> build_token_msg(const std::string& expr){
+            return handle_token_msg(tokenize(expr));
+        };
+        template<typename NumType,typename Ty = std::string>inline NumType get_var_value(std::string& name,Storage<Ty>& store){
+            return static_cast<NumType>(store.get(name));
+        };
+        std::vector<Token> convert_token_rpn(const std::vector<Token>& tokens){
+            std::vector<Token>opr;
+            std::vector<Token>out;
+            for (size_t i = 0;i < tokens.size();++i){
+                const Token& tk = tokens[i];
+                if (isdig(tk.type) || isvar(tk.type))out.push_back(tk);
+                else if (tk.type == TokenType::OpenParen)opr.push_back(tk);
+                else if (tk.type == TokenType::CloseParen){
+                    while (!opr.empty() && opr.back().type != TokenType::OpenParen){
+                        out.push_back(opr.back());
+                        opr.pop_back();
+                    };
+                    if (!opr.empty())opr.pop_back();
+                } else if (isopr(tk.type)){
+                    while (!opr.empty() && tk.lvl >= opr.back().lvl && opr.back().type != TokenType::OpenParen){
+                        out.push_back(opr.back());
+                        opr.pop_back();
+                    };
+                    opr.push_back(tk);
+                };
+            };
+            while (opr.size()){
+                out.push_back(opr.back());
+                opr.pop_back();
+            };
+            return out;
+        };
+        class NumberType{
+        public:
+            double val = 0;
+            bool is_int = 0;
+            bool no_flag = false;
+            std::string valname;
+            TokenType type = TokenType::NOPS;
+            NumberType(bool flag = 0){
+                no_flag = flag;
+            };
+            NumberType(double _val,bool _is_int,TokenType _type):val(_val),is_int(_is_int),type(_type){};
+            NumberType(double _val,bool _is_int,TokenType _type,const std::string& _valname):val(_val),is_int(_is_int),type(_type),valname(_valname){};
+            inline bool is_val(){
+                return valname.size();
+            };
+            inline double get(){
+                if (is_int)return (long long)val;
+                return val;
+            };
+        };
+        class Calculate{
+        public:
+            static inline bool is_integer(const std::string& str){
+                for (size_t i = 0;i < str.size();++i)if (str[i] == '.')return false;
+                return true;
+            };
+            static inline bool is_decimal(const std::string& str){
+                return !is_integer(str);
+            };
+            template<typename T>static inline int get_number_type(){
+                if (std::is_integral<T>::value)return 1;
+                if (std::is_floating_point<T>::value)return 2;
+                return  0;
+            };
+            static int get_opr_c(TokenType type){
+                switch (type){
+                    case KUR::plus::TokenType::NOPS:
+                        return 0;
+                        break;
+                    case KUR::plus::TokenType::Increment://--
+                        return 1;
+                        break;
+                    case KUR::plus::TokenType::Decrement://++
+                        return 1;
+                        break;
+                    case KUR::plus::TokenType::Not: //~
+                        return 1;
+                        break;
+                    case KUR::plus::TokenType::Emark: //!
+                        return 1;
+                        break;
+                    default:
+                        return 2;
+                        break;
+                };
+            };
+
+
+            template<typename Ret>static Ret calculate(TokenType type,NumberType L,NumberType R,Storage<std::string>& store){
+                Ret tmp = 0;
+                auto& v = L;
+                if (isvar(L.type))v = store.get<NumberType>(L.valname);
+                switch (type){
+                    case KUR::plus::TokenType::NOPS:
+                        break;
+                    case KUR::plus::TokenType::Identifier:
+                        tmp = store.get<Ret>(L.valname);
+                        break;
+                    case KUR::plus::TokenType::Number:
+                        tmp = L.get();
+                        break;
+                    case KUR::plus::TokenType::Function:
+                        break;
+                    case KUR::plus::TokenType::Increment:
+                        if (isvar(L.type)){
+                            ++v.val;
+                            tmp = v.val;
+                            break;
+                        };
+                        tmp = L.val + 1;
+                        break;
+                    case KUR::plus::TokenType::Decrement:
+                        if (isvar(L.type)){
+                            --v.val;
+                            tmp = v.val;
+                            break;
+                        };
+                        tmp = L.val - 1;
+                        break;
+                    case KUR::plus::TokenType::Not:      //TODO,���ӶԱ�����֧��;
+                        tmp = ~(long long)L.val;
+                        break;
+                    case KUR::plus::TokenType::Emark:
+                        tmp = !L.val;
+                        break;
+                    case KUR::plus::TokenType::Multiply:
+                        tmp = L.val * R.val;
+                        break;
+                    case KUR::plus::TokenType::Divide:
+                        tmp = L.val / R.val;
+                        break;
+                    case KUR::plus::TokenType::Modulo:
+                        tmp = (long long)L.val % (long long)R.val;
+                        break;
+                    case KUR::plus::TokenType::Add:
+                        tmp = L.val + R.val;
+                        break;
+                    case KUR::plus::TokenType::Subtract:
+                        tmp = L.val - R.val;
+                        break;
+                    case KUR::plus::TokenType::ShiftLeft:
+                        tmp = (long long)L.val << (long long)R.val;
+                        break;
+                    case KUR::plus::TokenType::ShiftRight:
+                        tmp = (long long)L.val >> (long long)R.val;
+                        break;
+                    case KUR::plus::TokenType::LessThan:
+                        tmp = L.val < R.val;
+                        break;
+                    case KUR::plus::TokenType::GreaterThan:
+                        tmp = L.val > R.val;
+                        break;
+                    case KUR::plus::TokenType::LessThanEqual:
+                        tmp = L.val <= R.val;
+                        break;
+                    case KUR::plus::TokenType::GreaterThanEqual:
+                        tmp = L.val >= R.val;
+                        break;
+                    case KUR::plus::TokenType::EqualTo:
+                        if (L.is_int){
+                            tmp = (long long)L.val == (long long)R.val;
+                        } else{
+                            tmp = L.val == R.val;
+                        };
+                        break;
+                    case KUR::plus::TokenType::NotEqualTo:
+                        if (L.is_int){
+                            tmp = (long long)L.val != (long long)R.val;
+                        } else{
+                            tmp = L.val != R.val;
+                        };
+                        break;
+                    case KUR::plus::TokenType::And:
+                        tmp = (long long)L.val & (long long)R.val;
+                        break;
+                    case KUR::plus::TokenType::Xor:
+                        tmp = (long long)L.val ^ (long long)R.val;
+                        break;
+                    case KUR::plus::TokenType::Or:
+                        tmp = (long long)L.val | (long long)R.val;
+                        break;
+                    case KUR::plus::TokenType::LogicalAnd:
+                        if (L.is_int){
+                            tmp = (long long)L.val && (long long)R.val;
+                        } else{
+                            tmp = L.val && R.val;
+                        };
+                        break;
+                    case KUR::plus::TokenType::LogicalOr:
+                        if (L.is_int){
+                            tmp = (long long)L.val || (long long)R.val;
+                        } else{
+                            tmp = L.val || R.val;
+                        };
+                        break;
+                    case KUR::plus::TokenType::EqlAssign://L must be var
+                        v.is_int = R.is_int;
+                        v.val = R.val;
+                        tmp = v.val;
+                        break;
+                    case KUR::plus::TokenType::AddAssign:
+                        v.val += R.val;
+                        tmp = v.val;
+                        break;
+                    case KUR::plus::TokenType::SubtractAssign:
+                        v.val -= R.val;
+                        tmp = v.val;
+                        break;
+                    case KUR::plus::TokenType::MultiplyAssign:
+                        v.val *= R.val;
+                        tmp = v.val;
+                        break;
+                    case KUR::plus::TokenType::DivideAssign:
+                        v.val /= R.val;
+                        tmp = v.val;
+                        break;
+                    case KUR::plus::TokenType::ModuloAssign:
+                        v.val = (long long)v.val % (long long)R.val;
+                        tmp = v.val;
+                        break;
+                };
+                return tmp;
+            };
+        };
+        std::string evaluate(std::vector<Token>& tokens,Storage<std::string>& store){
+            std::vector<plus::NumberType>vec;
+            std::string ret;
+            bool is_int = false;
+            int oprc = 2;
+            double retd = 0;
+            long long retl = 0;
+            for (size_t i = 0;i < tokens.size();++i){
+                auto& token = tokens[i];
+                is_int = false;
+                if (isdig(token.type)){
+                    if (Calculate::is_integer(token.val)){
+                        vec.push_back(NumberType(std::stoll(token.val),true,token.type));
+                    } else{
+                        vec.push_back(NumberType(std::stod(token.val),false,token.type));
+                    }
+                } else if (isopr(token.type)){
+                    oprc = Calculate::get_opr_c(token.type);
+                    if (oprc == 1){
+                        auto& _R = vec.back();
+                        if (_R.is_int){
+                            retl = Calculate::calculate<long long>(token.type,_R,0,store);
+                        } else{
+                            retd = Calculate::calculate<double>(token.type,_R,0,store);
+                        };
+                        bool _is = _R.is_int;
+                        auto type = _R.type;
+                        vec.pop_back();
+                        if (_is){
+                            vec.push_back(NumberType(retl,_is,type));
+                        } else{
+                            vec.push_back(NumberType(retd,_is,type));
+                        };
+                    } else if (oprc == 2){
+                        auto& _L = vec[vec.size() - 2];
+                        auto& _R = vec.back();
+                        if (_L.is_int){
+                            retl = Calculate::calculate<long long>(token.type,_L,_R,store);
+                        } else{
+                            retd = Calculate::calculate<double>(token.type,_L,_R,store);
+                        };
+                        auto type = _L.type;
+                        bool _is = _L.is_int;
+                        vec.pop_back();
+                        vec.pop_back();
+                        if (_is){
+                            vec.push_back(NumberType(retl,_is,type));
+                        } else{
+                            vec.push_back(NumberType(retd,_is,type));
+                        };
+                    } else{
+                        ret = "Unsupported operator";
+                        return ret;
+                    }
+                } else if (isvar(token.type)){
+                    vec.push_back(NumberType(store.get<NumberType>(token.val).get(),token.is_int,token.type,token.val));
+                } else{
+                    ret = "Invalid expression";
+                    return ret;
+                }
+            };
+            auto& v0 = vec[0];
+            if (isvar(v0.type)){
+                if (v0.is_int){
+                    ret = std::to_string((long long)store.get<NumberType>(v0.valname).val);
+                } else{
+                    ret = std::to_string(store.get<NumberType>(v0.valname).val);
+                };
+                return ret;
+            };
+            if (v0.is_int){
+                ret = std::to_string((long long)v0.get());
+            } else{
+                ret = std::to_string(v0.get());
+            };
+            return ret;
+        };
+        inline std::string eval(const std::string& expr,Storage<std::string>& store){
+            auto tokens = convert_token_rpn(build_token_msg(expr));
+            return evaluate(tokens,store);
+        };
+        class Interpreter{
+        public:
+            std::string retstr;
+            Storage<std::string>store;
+            Interpreter(){};
+            std::string& eval(const std::string& expr){
+                this->retstr = plus::eval(expr,store);
+                return this->retstr;
             };
         };
     };

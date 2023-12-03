@@ -12,9 +12,6 @@
 #define _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
 #define Windows_ENABLE_base
 
-#define k2022 LB2022::KUR
-#define k2023 LB2023
-
 #ifdef ENABLE_SZN_OPE
 #include <gl/glut.h>
 #pragma comment(lib, "msvcrt.lib")
@@ -132,7 +129,6 @@
     {                        \
         return 0;            \
     }
-#include "plus.hpp"
 typedef unsigned short int KCDSTR;
 namespace KUR{
     namespace LB2022{
@@ -2098,11 +2094,6 @@ namespace KUR{
             void Default(){
                 LB2023::Keyboard::Hook::Hooks::Change(LB2023::Keyboard::Hook::___pfun,LB2023::Keyboard::Hook::element);
             };
-        };
-        namespace others{
-            
-        };
-        namespace script{
         };
     };
 };
