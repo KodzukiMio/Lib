@@ -693,7 +693,7 @@ namespace KUR{
                 if (isvar1(tmp)){
                     var.push_back(tmp);
                     continue;
-                }
+                };
                 if (!var.empty()){
                     if (isvar2(tmp)){
                         var.push_back(tmp);
@@ -876,8 +876,6 @@ namespace KUR{
                         break;
                 };
             };
-
-
             template<typename Ret>static Ret calculate(TokenType type,NumberType L,NumberType R,Storage<std::string>& store){
                 Ret tmp = 0;
                 auto& v = L;
@@ -949,18 +947,12 @@ namespace KUR{
                         tmp = L.val >= R.val;
                         break;
                     case KUR::plus::TokenType::EqualTo:
-                        if (L.is_int){
-                            tmp = (long long)L.val == (long long)R.val;
-                        } else{
-                            tmp = L.val == R.val;
-                        };
+                        if (L.is_int)tmp = (long long)L.val == (long long)R.val;
+                        else tmp = L.val == R.val;
                         break;
                     case KUR::plus::TokenType::NotEqualTo:
-                        if (L.is_int){
-                            tmp = (long long)L.val != (long long)R.val;
-                        } else{
-                            tmp = L.val != R.val;
-                        };
+                        if (L.is_int)tmp = (long long)L.val != (long long)R.val;
+                        else tmp = L.val != R.val;
                         break;
                     case KUR::plus::TokenType::And:
                         tmp = (long long)L.val & (long long)R.val;
@@ -972,11 +964,8 @@ namespace KUR{
                         tmp = (long long)L.val | (long long)R.val;
                         break;
                     case KUR::plus::TokenType::LogicalAnd:
-                        if (L.is_int){
-                            tmp = (long long)L.val && (long long)R.val;
-                        } else{
-                            tmp = L.val && R.val;
-                        };
+                        if (L.is_int)tmp = (long long)L.val && (long long)R.val;
+                        else tmp = L.val && R.val;
                         break;
                     case KUR::plus::TokenType::LogicalOr:
                         if (L.is_int){
@@ -1025,28 +1014,19 @@ namespace KUR{
                 auto& token = tokens[i];
                 is_int = false;
                 if (isdig(token.type)){
-                    if (Calculate::is_integer(token.val)){
-                        vec.push_back(NumberType(std::stoll(token.val),true,token.type));
-                    } else{
-                        vec.push_back(NumberType(std::stod(token.val),false,token.type));
-                    }
+                    if (Calculate::is_integer(token.val))vec.push_back(NumberType(std::stoll(token.val),true,token.type));
+                    else vec.push_back(NumberType(std::stod(token.val),false,token.type));
                 } else if (isopr(token.type)){
                     oprc = Calculate::get_opr_c(token.type);
                     if (oprc == 1){
                         auto& _R = vec.back();
-                        if (_R.is_int){
-                            retl = Calculate::calculate<long long>(token.type,_R,0,store);
-                        } else{
-                            retd = Calculate::calculate<double>(token.type,_R,0,store);
-                        };
+                        if (_R.is_int)retl = Calculate::calculate<long long>(token.type,_R,0,store);
+                        else retd = Calculate::calculate<double>(token.type,_R,0,store);
                         bool _is = _R.is_int;
                         auto type = _R.type;
                         vec.pop_back();
-                        if (_is){
-                            vec.push_back(NumberType(retl,_is,type));
-                        } else{
-                            vec.push_back(NumberType(retd,_is,type));
-                        };
+                        if (_is)vec.push_back(NumberType(retl,_is,type));
+                        else vec.push_back(NumberType(retd,_is,type));
                     } else if (oprc == 2){
                         auto& _L = vec[vec.size() - 2];
                         auto& _R = vec.back();
@@ -1058,11 +1038,8 @@ namespace KUR{
                         auto type = _L.type;
                         vec.pop_back();
                         vec.pop_back();
-                        if (_is){
-                            vec.push_back(NumberType(retl,_is,type));
-                        } else{
-                            vec.push_back(NumberType(retd,_is,type));
-                        };
+                        if (_is)vec.push_back(NumberType(retl,_is,type));
+                        else vec.push_back(NumberType(retd,_is,type));
                     } else{
                         ret = "Unsupported operator";
                         return ret;
@@ -1076,18 +1053,12 @@ namespace KUR{
             };
             auto& v0 = vec[0];
             if (isvar(v0.type)){
-                if (v0.is_int){
-                    ret = std::to_string((long long)store.get<NumberType>(v0.valname).val);
-                } else{
-                    ret = std::to_string(store.get<NumberType>(v0.valname).val);
-                };
+                if (v0.is_int)ret = std::to_string((long long)store.get<NumberType>(v0.valname).val);
+                else ret = std::to_string(store.get<NumberType>(v0.valname).val);
                 return ret;
             };
-            if (v0.is_int){
-                ret = std::to_string((long long)v0.get());
-            } else{
-                ret = std::to_string(v0.get());
-            };
+            if (v0.is_int)ret = std::to_string((long long)v0.get());
+            else ret = std::to_string(v0.get());
             return ret;
         };
         inline std::string eval(const std::string& expr,Storage<std::string>& store,bool mode){
