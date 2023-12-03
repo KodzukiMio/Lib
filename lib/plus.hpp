@@ -682,7 +682,7 @@ namespace KUR{
             if (type == TokenType::CloseParen || type == TokenType::OpenParen)return true;
             return false;
         };
-        std::vector<std::string> tokenize(const std::string& expr){
+        std::vector<std::string> tokenize(const std::string& expr){ //TODO,--x,bug
             std::vector<std::string> tokens;
             std::string number;
             std::string var;
@@ -1008,13 +1008,11 @@ namespace KUR{
         std::string evaluate(std::vector<Token>& tokens,Storage<std::string>& store,bool mode){
             std::vector<plus::NumberType>vec;
             std::string ret;
-            bool is_int = false;
             int oprc = 2;
             __ntype_dec retd = 0;
             __ntype_int retl = 0;
             for (size_t i = 0;i < tokens.size();++i){
                 auto& token = tokens[i];
-                is_int = false;
                 if (isdig(token.type)){
                     if (Calculate::is_integer(token.val))vec.push_back(NumberType(std::stoll(token.val),true,token.type));
                     else vec.push_back(NumberType(std::stod(token.val),false,token.type));
