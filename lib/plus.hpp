@@ -866,146 +866,95 @@ namespace KUR{
                 switch (type){
                     case KUR::plus::TokenType::NOPS:
                         return 0;
-                        break;
                     case KUR::plus::TokenType::Increment://--
                         return 1;
-                        break;
                     case KUR::plus::TokenType::Decrement://++
                         return 1;
-                        break;
                     case KUR::plus::TokenType::Not: //~
                         return 1;
-                        break;
                     case KUR::plus::TokenType::Emark: //!
                         return 1;
-                        break;
                     default:
                         return 2;
-                        break;
                 };
             };
             template<typename Ret>static Ret calculate(TokenType type,NumberType L,NumberType R,Storage<std::string>& store){
-                Ret tmp = 0;
                 auto& v = L;
                 if (isvar(L.type))v = store.get<NumberType>(L.valname);
                 switch (type){
                     case KUR::plus::TokenType::NOPS:
-                        break;
+                        return 0;
                     case KUR::plus::TokenType::Identifier:
-                        tmp = store.get<Ret>(L.valname);
-                        break;
+                        return store.get<Ret>(L.valname);
                     case KUR::plus::TokenType::Number:
-                        tmp = L.get();
-                        break;
+                        return L.get();
                     case KUR::plus::TokenType::Function:
                         break;
                     case KUR::plus::TokenType::Increment:
-                        if (isvar(L.type)){
-                            ++v.val;
-                            tmp = v.val;
-                            break;
-                        };
-                        tmp = L.val + 1;
-                        break;
+                        if (isvar(L.type))return ++v.val;
+                        else return L.val + 1;
                     case KUR::plus::TokenType::Decrement:
-                        if (isvar(L.type)){
-                            --v.val;
-                            tmp = v.val;
-                            break;
-                        };
-                        tmp = L.val - 1;
-                        break;
+                        if (isvar(L.type))return --v.val;
+                        else return L.val - 1;
                     case KUR::plus::TokenType::Not:      //TODO,variable;
-                        tmp = ~(__ntype_int)L.val;
-                        break;
+                        return ~(__ntype_int)L.val;
                     case KUR::plus::TokenType::Emark:
-                        tmp = !L.val;
-                        break;
+                        return !L.val;
                     case KUR::plus::TokenType::Multiply:
-                        tmp = L.val * R.val;
-                        break;
+                        return L.val * R.val;
                     case KUR::plus::TokenType::Divide:
-                        tmp = L.val / R.val;
-                        break;
+                        return L.val / R.val;
                     case KUR::plus::TokenType::Modulo:
-                        tmp = (__ntype_int)L.val % (__ntype_int)R.val;
-                        break;
+                        return (__ntype_int)L.val % (__ntype_int)R.val;
                     case KUR::plus::TokenType::Add:
-                        tmp = L.val + R.val;
-                        break;
+                        return L.val + R.val;
                     case KUR::plus::TokenType::Subtract:
-                        tmp = L.val - R.val;
-                        break;
+                        return L.val - R.val;
                     case KUR::plus::TokenType::ShiftLeft:
-                        tmp = (__ntype_int)L.val << (__ntype_int)R.val;
-                        break;
+                        return (__ntype_int)L.val << (__ntype_int)R.val;
                     case KUR::plus::TokenType::ShiftRight:
-                        tmp = (__ntype_int)L.val >> (__ntype_int)R.val;
-                        break;
+                        return (__ntype_int)L.val >> (__ntype_int)R.val;
                     case KUR::plus::TokenType::LessThan:
-                        tmp = L.val < R.val;
-                        break;
+                        return L.val < R.val;
                     case KUR::plus::TokenType::GreaterThan:
-                        tmp = L.val > R.val;
-                        break;
+                        return L.val > R.val;
                     case KUR::plus::TokenType::LessThanEqual:
-                        tmp = L.val <= R.val;
-                        break;
+                        return L.val <= R.val;
                     case KUR::plus::TokenType::GreaterThanEqual:
-                        tmp = L.val >= R.val;
-                        break;
+                        return L.val >= R.val;
                     case KUR::plus::TokenType::EqualTo:
-                        if (L.is_int)tmp = (__ntype_int)L.val == (__ntype_int)R.val;
-                        else tmp = L.val == R.val;
-                        break;
+                        if (L.is_int)return (__ntype_int)L.val == (__ntype_int)R.val;
+                        else return L.val == R.val;
                     case KUR::plus::TokenType::NotEqualTo:
-                        if (L.is_int)tmp = (__ntype_int)L.val != (__ntype_int)R.val;
-                        else tmp = L.val != R.val;
-                        break;
+                        if (L.is_int)return (__ntype_int)L.val != (__ntype_int)R.val;
+                        else return L.val != R.val;
                     case KUR::plus::TokenType::And:
-                        tmp = (__ntype_int)L.val & (__ntype_int)R.val;
-                        break;
+                        return (__ntype_int)L.val & (__ntype_int)R.val;
                     case KUR::plus::TokenType::Xor:
-                        tmp = (__ntype_int)L.val ^ (__ntype_int)R.val;
-                        break;
+                        return (__ntype_int)L.val ^ (__ntype_int)R.val;
                     case KUR::plus::TokenType::Or:
-                        tmp = (__ntype_int)L.val | (__ntype_int)R.val;
-                        break;
+                        return (__ntype_int)L.val | (__ntype_int)R.val;
                     case KUR::plus::TokenType::LogicalAnd:
-                        if (L.is_int)tmp = (__ntype_int)L.val && (__ntype_int)R.val;
-                        else tmp = L.val && R.val;
-                        break;
+                        if (L.is_int)return (__ntype_int)L.val && (__ntype_int)R.val;
+                        else return L.val && R.val;
                     case KUR::plus::TokenType::LogicalOr:
-                        if (L.is_int)tmp = (__ntype_int)L.val || (__ntype_int)R.val;
-                        else tmp = L.val || R.val;
-                        break;
+                        if (L.is_int)return (__ntype_int)L.val || (__ntype_int)R.val;
+                        else return L.val || R.val;
                     case KUR::plus::TokenType::EqlAssign://L must be var
                         v.is_int = R.is_int;
-                        v.val = R.val;
-                        tmp = v.val;
-                        break;
+                        return (v.val = R.val);
                     case KUR::plus::TokenType::AddAssign:
-                        v.val += R.val;
-                        tmp = v.val;
-                        break;
+                        return (v.val += R.val);
                     case KUR::plus::TokenType::SubtractAssign:
-                        v.val -= R.val;
-                        tmp = v.val;
-                        break;
+                        return (v.val -= R.val);
                     case KUR::plus::TokenType::MultiplyAssign:
-                        v.val *= R.val;
-                        tmp = v.val;
-                        break;
+                        return v.val *= R.val;
                     case KUR::plus::TokenType::DivideAssign:
-                        v.val /= R.val;
-                        tmp = v.val;
-                        break;
+                        return v.val /= R.val;
                     case KUR::plus::TokenType::ModuloAssign:
-                        v.val = (__ntype_int)v.val % (__ntype_int)R.val;
-                        tmp = v.val;
-                        break;
+                        return v.val = (__ntype_int)v.val % (__ntype_int)R.val;
                 };
-                return tmp;
+                return 0;
             };
         };
         std::string evaluate(std::vector<Token>& tokens,Storage<std::string>& store,bool& mode){
@@ -1075,7 +1024,7 @@ namespace KUR{
         };
         class Interpreter{
         public:
-            bool mode = false;//true:6/5=1;false:6/5=1.2;
+            bool mode = false;//true:integer;false:decimal-fp64;
             std::string retstr;
             Storage<std::string>store;
             Interpreter(bool _mode = false):mode(_mode){};
