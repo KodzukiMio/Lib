@@ -682,12 +682,18 @@ namespace KUR{
             if (type == TokenType::CloseParen || type == TokenType::OpenParen)return true;
             return false;
         };
-        std::vector<std::string> tokenize(const std::string& expr){ //TODO,--x,bug
+        std::vector<std::string> tokenize(const std::string& expr0){
             std::vector<std::string> tokens;
             std::string number;
             std::string var;
             std::string tcop;
             char tmp;
+            std::string expr;
+            for (size_t i = 0;i < expr0.size();++i){
+                tmp = expr0[i];
+                if (tmp == ' ')continue;
+                else expr.push_back(tmp);
+            }
             for (size_t i = 0; i < expr.size(); ++i){
                 tmp = expr[i];
                 if (isvar1(tmp)){
@@ -706,10 +712,6 @@ namespace KUR{
                     tokens.push_back(number);
                     number.clear();
                 }
-                if ((std::isdigit(tmp) || tmp == '.' || (tmp == '-' && i + 1 < expr.size() && isdigit(expr[i + 1]) && i >= 1 && !isdigit(expr[i - 1]) && expr[i - 1] != ')') || (tmp == '-' && !i)) && var.empty()){
-                    number.push_back(tmp);
-                    continue;
-                }
                 if (i + 1 < expr.size()){
                     tcop = {tmp,expr[i + 1]};
                     if (issymbol2(tcop)){
@@ -717,6 +719,10 @@ namespace KUR{
                         i++;
                         continue;
                     }
+                }
+                if ((std::isdigit(tmp) || tmp == '.' || (tmp == '-' && i + 1 < expr.size() && isdigit(expr[i + 1]) && i >= 1 && !isdigit(expr[i - 1]) && expr[i - 1] != ')') || (tmp == '-' && !i)) && var.empty()){
+                    number.push_back(tmp);
+                    continue;
                 }
                 if (issymbol1(tmp)){
                     tokens.push_back(std::string(1,tmp));
@@ -1005,12 +1011,13 @@ namespace KUR{
                 return tmp;
             };
         };
-        std::string evaluate(std::vector<Token>& tokens,Storage<std::string>& store,bool mode){
+        std::string evaluate(std::vector<Token>& tokens,Storage<std::string>& store,bool& mode){
             std::vector<plus::NumberType>vec;
             std::string ret;
             int oprc = 2;
             __ntype_dec retd = 0;
             __ntype_int retl = 0;
+            auto _null = NumberType(true);
             for (size_t i = 0;i < tokens.size();++i){
                 auto& token = tokens[i];
                 if (isdig(token.type)){
@@ -1028,8 +1035,12 @@ namespace KUR{
                         if (_is)vec.push_back(NumberType(retl,_is,type));
                         else vec.push_back(NumberType(retd,_is,type));
                     } else if (oprc == 2){
-                        auto& _L = vec[vec.size() - 2];
                         auto& _R = vec.back();
+                        auto& _L = (vec.size() >= 2) ? vec[vec.size() - 2] : _null;
+                        if (_L.no_flag){
+                            _L.is_int = _R.is_int;
+                            _L.type = _R.type;
+                        };
                         bool div = true;
                         if (token.type == TokenType::Divide || token.type == TokenType::DivideAssign)div = mode;
                         bool _is = _L.is_int && _R.is_int && div;
@@ -1037,7 +1048,7 @@ namespace KUR{
                         else retd = Calculate::calculate<__ntype_dec>(token.type,_L,_R,store);
                         auto type = _L.type;
                         vec.pop_back();
-                        vec.pop_back();
+                        if (!vec.empty())vec.pop_back();
                         if (_is)vec.push_back(NumberType(retl,_is,type));
                         else vec.push_back(NumberType(retd,_is,type));
                     } else{
@@ -1061,7 +1072,7 @@ namespace KUR{
             else ret = std::to_string(v0.get());
             return ret;
         };
-        inline std::string eval(const std::string& expr,Storage<std::string>& store,bool mode){
+        inline std::string eval(const std::string& expr,Storage<std::string>& store,bool& mode){
             auto tokens = convert_token_rpn(build_token_msg(expr));
             return evaluate(tokens,store,mode);
         };
@@ -1070,7 +1081,7 @@ namespace KUR{
             bool mode = false;//true:6/5=1;false:6/5=1.2;
             std::string retstr;
             Storage<std::string>store;
-            Interpreter(){};
+            Interpreter(bool _mode = false):mode(_mode){};
             std::string& eval(const std::string& expr){
                 this->retstr = plus::eval(expr,store,mode);
                 return this->retstr;
@@ -1079,7 +1090,7 @@ namespace KUR{
                 std::string str;
                 while (true){
                     std::cout << ">>";
-                    std::cin >> str;
+                    std::getline(std::cin,str);
                     if (str == "exit")break;
                     std::cout << this->eval(str) << '\n';
                 };
