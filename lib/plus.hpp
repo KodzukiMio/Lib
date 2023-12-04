@@ -976,11 +976,8 @@ namespace KUR{
                         else tmp = L.val && R.val;
                         break;
                     case KUR::plus::TokenType::LogicalOr:
-                        if (L.is_int){
-                            tmp = (__ntype_int)L.val || (__ntype_int)R.val;
-                        } else{
-                            tmp = L.val || R.val;
-                        };
+                        if (L.is_int)tmp = (__ntype_int)L.val || (__ntype_int)R.val;
+                        else tmp = L.val || R.val;
                         break;
                     case KUR::plus::TokenType::EqlAssign://L must be var
                         v.is_int = R.is_int;
