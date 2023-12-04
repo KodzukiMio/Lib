@@ -580,7 +580,7 @@ namespace KUR{
             LessThan,            //<"  
             GreaterThan,         //" > "  
             LessThanEqual,       //" <="   
-            GreaterThanEqual,	  ///>="
+            GreaterThanEqual,	  //>="
             // Level 7
             Lv7,
             EqualTo,// "=="
@@ -1031,7 +1031,7 @@ namespace KUR{
                         auto& _L = vec[vec.size() - 2];
                         auto& _R = vec.back();
                         bool div = true;
-                        if (token.type == TokenType::Divide || token.type == TokenType::DivideAssign)div = true && mode;
+                        if (token.type == TokenType::Divide || token.type == TokenType::DivideAssign)div = mode;
                         bool _is = _L.is_int && _R.is_int && div;
                         if (_is)retl = Calculate::calculate<__ntype_int>(token.type,_L,_R,store);
                         else retd = Calculate::calculate<__ntype_dec>(token.type,_L,_R,store);
@@ -1074,6 +1074,15 @@ namespace KUR{
             std::string& eval(const std::string& expr){
                 this->retstr = plus::eval(expr,store,mode);
                 return this->retstr;
+            };
+            void InterActive(){
+                std::string str;
+                while (true){
+                    std::cout << ">>";
+                    std::cin >> str;
+                    if (str == "exit")break;
+                    std::cout << this->eval(str) << '\n';
+                };
             };
         };
     };
