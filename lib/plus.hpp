@@ -682,7 +682,10 @@ namespace KUR{
             if (type == TokenType::CloseParen || type == TokenType::OpenParen)return true;
             return false;
         };
-        std::vector<std::string> tokenize(const std::string& expr0){
+        inline bool token_check(char c){//TODO
+            return false;
+        };
+        std::vector<std::string> tokenize(const std::string& expr0,bool check){
             std::vector<std::string> tokens;
             std::string number;
             std::string var;
@@ -691,6 +694,7 @@ namespace KUR{
             std::string expr;
             for (size_t i = 0;i < expr0.size();++i){
                 tmp = expr0[i];
+                if (check && token_check(tmp))throw std::exception("Invalid token !");
                 if (tmp == ' ')continue;
                 else expr.push_back(tmp);
             }
@@ -793,8 +797,8 @@ namespace KUR{
             }
             return tokens;
         };
-        inline std::vector<Token> build_token_msg(const std::string& expr){
-            return handle_token_msg(tokenize(expr));
+        inline std::vector<Token> build_token_msg(const std::string& expr,bool check){
+            return handle_token_msg(tokenize(expr,check));
         };
         template<typename NumType,typename Ty = std::string>inline NumType get_var_value(std::string& name,Storage<Ty>& store){
             return static_cast<NumType>(store.get(name));
@@ -835,9 +839,7 @@ namespace KUR{
             bool no_flag = false;
             std::string valname;
             TokenType type = TokenType::NOPS;
-            NumberType(bool flag = 0){
-                no_flag = flag;
-            };
+            NumberType(bool flag = 0):no_flag(flag){};
             NumberType(__ntype_dec _val,bool _is_int,TokenType _type):val(_val),is_int(_is_int),type(_type){};
             NumberType(__ntype_dec _val,bool _is_int,TokenType _type,const std::string& _valname):val(_val),is_int(_is_int),type(_type),valname(_valname){};
             inline bool is_val(){
@@ -960,7 +962,7 @@ namespace KUR{
         std::string evaluate(std::vector<Token>& tokens,Storage<std::string>& store,bool& mode){
             std::vector<plus::NumberType>vec;
             std::string ret;
-            int oprc = 2;
+            int oprc = 0;
             __ntype_dec retd = 0;
             __ntype_int retl = 0;
             auto _null = NumberType(true);
@@ -1018,8 +1020,8 @@ namespace KUR{
             else ret = std::to_string(v0.get());
             return ret;
         };
-        inline std::string eval(const std::string& expr,Storage<std::string>& store,bool& mode){
-            auto tokens = convert_token_rpn(build_token_msg(expr));
+        inline std::string eval(const std::string& expr,Storage<std::string>& store,bool& mode,bool check){
+            auto tokens = convert_token_rpn(build_token_msg(expr,check));
             return evaluate(tokens,store,mode);
         };
         class Interpreter{
@@ -1028,17 +1030,24 @@ namespace KUR{
             std::string retstr;
             Storage<std::string>store;
             Interpreter(bool _mode = false):mode(_mode){};
-            std::string& eval(const std::string& expr){
-                this->retstr = plus::eval(expr,store,mode);
+            std::string& eval(const std::string& expr,bool check){
+                this->retstr = plus::eval(expr,store,mode,check);
                 return this->retstr;
             };
-            void InterActive(){
+            void InterActive(bool check = false){
                 std::string str;
                 while (true){
                     std::cout << ">>";
                     std::getline(std::cin,str);
                     if (str == "exit")break;
-                    std::cout << this->eval(str) << '\n';
+                    std::cout << this->eval(str,check) << '\n';
+                };
+            };
+            void InterActiveSafe(){
+                try{
+                    this->InterActive(true);
+                } catch (const std::exception& e){
+                    std::cout << e.what();
                 };
             };
         };
