@@ -885,7 +885,7 @@ namespace KUR{
                 if (isvar(L.type))v = store.get<NumberType>(L.valname);
                 switch (type){
                     case KUR::plus::TokenType::NOPS:
-                        return 0;
+                        break;
                     case KUR::plus::TokenType::Identifier:
                         return store.get<Ret>(L.valname);
                     case KUR::plus::TokenType::Number:
@@ -925,7 +925,9 @@ namespace KUR{
                     case KUR::plus::TokenType::GreaterThanEqual:
                         return L.val >= R.val;
                     case KUR::plus::TokenType::EqualTo:
-                        if (L.is_int)return (__ntype_int)L.val == (__ntype_int)R.val;
+                        if (L.is_int && !R.is_int)return (__ntype_int)L.val == R.val;
+                        else if (R.is_int && !L.is_int)return L.val == (__ntype_int)R.val;
+                        else if (R.is_int && L.is_int)return (__ntype_int)L.val == (__ntype_int)R.val;
                         else return L.val == R.val;
                     case KUR::plus::TokenType::NotEqualTo:
                         if (L.is_int)return (__ntype_int)L.val != (__ntype_int)R.val;
