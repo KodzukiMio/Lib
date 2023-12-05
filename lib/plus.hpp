@@ -1018,6 +1018,10 @@ namespace KUR{
             };
             if (v0.is_int)ret = std::to_string((__ntype_int)v0.get());
             else ret = std::to_string(v0.get());
+            if (!v0.is_int){
+                while (ret.back() == '0')ret.pop_back();
+                if (ret.back() == '.')ret.pop_back();
+            };
             return ret;
         };
         inline std::string eval(const std::string& expr,Storage<std::string>& store,bool& mode,bool check){
@@ -1043,12 +1047,14 @@ namespace KUR{
                     std::cout << this->eval(str,check) << '\n';
                 };
             };
-            void InterActiveSafe(){
+            bool InterActiveSafe(){
                 try{
                     this->InterActive(true);
                 } catch (const std::exception& e){
                     std::cout << e.what();
+                    return false;
                 };
+                return true;
             };
         };
     };
