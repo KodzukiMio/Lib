@@ -685,7 +685,7 @@ namespace KUR{
         inline bool token_check(char c){//TODO
             return false;
         };
-        std::vector<std::string> tokenize(const std::string& expr0,bool check){
+        std::vector<std::string> tokenize(const std::string& expr0,bool check = false){
             std::vector<std::string> tokens;
             std::string number;
             std::string var;
@@ -797,7 +797,7 @@ namespace KUR{
             }
             return tokens;
         };
-        inline std::vector<Token> build_token_msg(const std::string& expr,bool check){
+        inline std::vector<Token> build_token_msg(const std::string& expr,bool check = false){
             return handle_token_msg(tokenize(expr,check));
         };
         template<typename NumType,typename Ty = std::string>inline NumType get_var_value(std::string& name,Storage<Ty>& store){
@@ -1024,7 +1024,7 @@ namespace KUR{
             };
             return ret;
         };
-        inline std::string eval(const std::string& expr,Storage<std::string>& store,bool& mode,bool check){
+        inline std::string eval(const std::string& expr,Storage<std::string>& store,bool& mode,bool check = false){
             auto tokens = convert_token_rpn(build_token_msg(expr,check));
             return evaluate(tokens,store,mode);
         };
@@ -1034,7 +1034,7 @@ namespace KUR{
             std::string retstr;
             Storage<std::string>store;
             Interpreter(bool _mode = false):mode(_mode){};
-            std::string& eval(const std::string& expr,bool check){
+            std::string& eval(const std::string& expr,bool check = false){
                 this->retstr = plus::eval(expr,store,mode,check);
                 return this->retstr;
             };
