@@ -15,19 +15,18 @@
 namespace KUR{
     namespace plus{
         //将 _tVal 的低位设置到_sVal指定的起始位begbits上,覆盖长度为 len 的位段.要求T为任意整型,超出范围或类型错误抛出异常.
-        template<typename T>void setbits(T& _sVal,size_t begbits,size_t len,T _tVal){
+        template<typename T>inline void setbits(T& _sVal,size_t begbits,size_t len,T _tVal){
             static_assert(std::is_integral<T>::value,"Integral type required.");
-            if (len <= 0 || begbits < 0 || begbits >= sizeof(T) * 8 || len > sizeof(T) * 8 - begbits)throw std::out_of_range("Bit range is out of bounds");
+            if (len <= 0 || begbits < 0 || begbits >= (sizeof(T) << 3) || len >((sizeof(T) << 3) - begbits))throw std::out_of_range("Bit range is out of bounds");
             T mask = ((T(1) << len) - 1) << begbits;
             _sVal &= ~mask;
             _sVal |= (_tVal << begbits) & mask;
         };
         //从 _sVal中提取从第begbits位开始,长度为len的位序列并返回.要求T为任意整型,超出范围或类型错误抛出异常.
-        template<typename T>T getbits(T _sVal,size_t begbits,size_t len){
+        template<typename T>inline T getbits(T _sVal,size_t begbits,size_t len){
             static_assert(std::is_integral<T>::value,"Integral type required.");
-            if (len <= 0 || begbits < 0 || begbits >= sizeof(T) * 8 || len > sizeof(T) * 8 - begbits)throw std::out_of_range("Bit range is out of bounds");
-            T mask = ((T(1) << len) - 1);
-            return (_sVal >> begbits) & mask;
+            if (len <= 0 || begbits < 0 || begbits >= (sizeof(T) << 3) || len >((sizeof(T) << 3) - begbits))throw std::out_of_range("Bit range is out of bounds");
+            return (_sVal >> begbits) & ((T(1) << len) - 1);
         };
         class Object{
         public:
