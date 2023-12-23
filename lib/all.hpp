@@ -1,9 +1,12 @@
 #pragma once
 #include"dev.hpp"
-#include"base.hpp"
+#include"_iostream.hpp"
+#include"_string.hpp"
+#include"utility.hpp"
 #include"plus.hpp"
 
 namespace kur{
+    using namespace KUR;
     using namespace KUR::LB2022;
     using namespace KUR::LB2023;
     using namespace KUR::base;

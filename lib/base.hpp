@@ -14,9 +14,15 @@
 #ifdef KURZER_ENABLE_EXCEPTIONS
 #include<stdexcept>
 #endif // KURZER_ENABLE_EXCEPTIONS
+#ifdef __KUR_ENABLE_STRING             
+#define __KUR_STRING
+#endif
+#ifdef __KUR_ENABLE_IOSTREAM
+#define __KUR_IOSTREAM
+#endif // ENABLE_IOSTREAM
+
 namespace KUR{
     namespace base{
-        //size_t
         typedef unsigned long long ull;
         template <class _Ty,_Ty _Val>struct integral_constant{
             static constexpr _Ty value = _Val;
@@ -40,12 +46,10 @@ namespace KUR{
         };
         template <typename>inline constexpr bool _Always_false = false;
         template<typename Tchar> struct CharT{
-        #if __has_include(<string>)
-        #include<string>
+        #ifdef __KUR_STRING
             using char_t = std::basic_string<Tchar,std::char_traits<Tchar>,std::allocator<Tchar>>;
         #endif // _XSTRING_
-        #if __has_include(<iostream>)
-        #include<iostream>
+        #ifdef  __KUR_IOSTREAM
             using out_t = std::basic_ostream<Tchar,std::char_traits<Tchar>>;
             using in_t = std::basic_istream<Tchar,std::char_traits<Tchar>>;
         #endif // _IOSTREAM_
@@ -565,7 +569,7 @@ namespace KUR{
             inline void push_back(Tchar str){
                 this->data.push(str);
             };
-        #if __has_include(<iostream>)
+        #ifdef __KUR_IOSTREAM
             friend typename base::CharT<Tchar>::out_t& operator<<(typename base::CharT<Tchar>::out_t& os,const String<Tchar>& str){
                 ull _len = str.data.size();
                 for (ull i = 0; i < _len; ++i)os << str[i];
