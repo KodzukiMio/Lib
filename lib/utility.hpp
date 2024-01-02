@@ -3,6 +3,7 @@
 #include"_string.hpp"
 #include"base.hpp"
 #include <cstdint>
+#include<initializer_list>
 namespace KUR{
     namespace base{
         using sbyte = std::int8_t;
@@ -14,8 +15,8 @@ namespace KUR{
         using dword = std::uint32_t;
         using qword = std::uint64_t;
     }
-    using float32 = float;
-    using float64 = double;
+    using fp32 = float;
+    using fp64 = double;
     using byte1 = base::sbyte;
     using byte2 = base::sword;
     using byte4 = base::sdword;
@@ -24,16 +25,46 @@ namespace KUR{
     using ubyte2 = base::word;
     using ubyte4 = base::dword;
     using ubyte8 = base::qword;
-    template<size_t N>class ByteN{
+    inline byte1 tohex(char c){
+        if (c >= '0' && c <= '9')return c - '0';
+        if ((c >= 'A' && c <= 'F'))return c - 'A' + 10;
+        if ((c >= 'a' && c <= 'f'))return c - 'a' + 10;
+        return 0;
+    };
+    template<typename T>inline void _Copy_From(const T& _Val,const base::ull N,byte1* _data){
+        base::ull _Len = base::minimum(N,sizeof(T));
+        base::ull _Idx = -1;
+        byte1* _Ptr = (byte1*)(&_Val);
+        while ((++_Idx) < _Len)_data[_Idx] = _Ptr[_Idx];
+    };
+    template<base::ull N,typename Ty = void>class ByteN{
+    private:
+        byte1 _data[N] = {0};
     public:
-        byte1 _data[N];
+        template<typename T>inline void operator=(const T& _Val){
+            KUR::_Copy_From<T>(_Val,N,_data);
+        };
+        constexpr static const base::ull length = N;
+        inline byte1* get_bytes(){
+            return _data;
+        };
+    };
+    template<>class ByteN<0,void*>{
+    private:
+        byte1 _data;
+    public:
+        inline byte1* get_bytes(){
+            return &_data;
+        };
+        template<typename T>inline void operator=(const T& _Val){
+            KUR::_Copy_From<T>(_Val,-1,&_data);
+        };
     };
     template<typename T>class ByteArray{
     public:
         using _type = T;
         using _base_byte = base::conditional_t<base::is_unsigned_v<T>,ubyte1,byte1>;
-        //static_assert(base::is_integral<T>::value,"Integral type required.");也许需要操作其它类型,例如struct什么的,所以去掉了
-        constexpr static const ubyte1 length = sizeof(T);
+        constexpr static const base::ull length = sizeof(T);
         T data;
         inline _base_byte* begin(){
             return static_cast<_base_byte*>(&data);
@@ -41,21 +72,26 @@ namespace KUR{
         inline _base_byte* end(){
             return static_cast<_base_byte*>(&data + 1);
         };
-        template<typename Ty = _base_byte>inline Ty& get_ref_bytes(const unsigned _idx){
-        #ifdef KURZER_ENABLE_EXCEPTIONS
-            if (_idx >= length)throw std::runtime_error("out of range !");
-        #endif
-            return *(Ty*)((_base_byte*)(&data) + _idx);
+        template<typename Ty = _base_byte>inline Ty& refbytes(const base::ull _offset,const base::ull _base_offset = 0){
+            return (Ty&)(*((Ty*)((_base_byte*)&data + _base_offset) + _offset));
         };
-        inline auto& operator[](const unsigned idx){
-            return get_ref_bytes(idx);
+        inline auto& operator[](const base::ull idx){
+            return this->refbytes<_base_byte>(idx);
         };
-        template<typename Ty>inline Ty& refbytes(const unsigned _offset,const unsigned _base_offset = 0){
-            static_assert(base::is_integral<Ty>::value,"Byte type required.");
-        #ifdef KURZER_ENABLE_EXCEPTIONS
-            if (_offset * sizeof(Ty) + _base_offset >= length)throw std::runtime_error("out of range !");
-        #endif
-            return reinterpret_cast<Ty&>(*((Ty*)((_base_byte*)&data + _base_offset) + _offset));
+        template<base::ull _RangeL,base::ull _RangeR>inline ByteN<_RangeR - _RangeL>& range(){
+            return this->refbytes<ByteN<_RangeR - _RangeL>>(0,_RangeL);
+        };
+        inline ByteN<0,void*>& at(base::ull _offset){
+            return  this->refbytes<ByteN<0,void*>>(0,_offset);
+        };
+        inline void print_range_hex(base::ull _range_l,base::ull _range_r){
+            std::ios_base::fmtflags original_flags = std::cout.flags();
+            std::cout << std::hex;
+            _base_byte* _Ptr = (_base_byte*)(&data);
+            while (_range_l < _range_r){
+                std::cout << static_cast<int>((ubyte1)_Ptr[--_range_r]);
+            };
+            std::cout.flags(original_flags);
         };
     };
 }
