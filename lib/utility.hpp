@@ -1,6 +1,6 @@
 #pragma once
-#include"lib/_iostream.hpp"
-#include"lib/_string.hpp"
+#include"_iostream.hpp"
+#include"_string.hpp"
 #include"base.hpp"
 #include <cstdint>
 namespace KUR{
@@ -24,4 +24,34 @@ namespace KUR{
     using ubyte2 = base::word;
     using ubyte4 = base::dword;
     using ubyte8 = base::qword;
+    template<typename T>class ByteArray{//max size = 8;
+    public:
+        using _type = T;
+        using _base_byte = base::conditional_t<base::is_unsigned_v<T>,ubyte1,byte1>;
+        static_assert(base::is_integral<T>::value,"Integral type required.");
+        constexpr static const ubyte1 length = sizeof(T);
+        T data;
+        inline _base_byte* begin(){
+            return static_cast<_base_byte*>(&data);
+        };
+        inline _base_byte* end(){
+            return static_cast<_base_byte*>(&data + 1);
+        };
+        template<typename Ty = _base_byte>inline Ty& get_ref_bytes(const unsigned _idx){
+        #ifdef KURZER_ENABLE_EXCEPTIONS
+            if (_idx >= length)throw std::runtime_error("out of range !");
+        #endif
+            return *(Ty*)((_base_byte*)(&data) + _idx);
+        };
+        inline auto& operator[](const unsigned idx){
+            return get_ref_bytes(idx);
+        };
+        template<typename Ty>inline Ty& refbytes(const unsigned _offset,const unsigned _base_offset = 0){
+            static_assert(base::is_integral<Ty>::value,"Byte type required.");
+        #ifdef KURZER_ENABLE_EXCEPTIONS
+            if (_offset * sizeof(Ty) + _base_offset >= length)throw std::runtime_error("out of range !");
+        #endif
+            return reinterpret_cast<Ty&>(*((Ty*)((_base_byte*)&data + _base_offset) + _offset));
+        };
+    };
 }

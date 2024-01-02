@@ -24,6 +24,20 @@
 namespace KUR{
     namespace base{
         typedef unsigned long long ull;
+        template<typename Tchar> struct CharT{
+        #ifdef __KUR_STRING
+            using char_t = std::basic_string<Tchar,std::char_traits<Tchar>,std::allocator<Tchar>>;
+        #endif // _XSTRING_
+        #ifdef  __KUR_IOSTREAM
+            using out_t = std::basic_ostream<Tchar,std::char_traits<Tchar>>;
+            using in_t = std::basic_istream<Tchar,std::char_traits<Tchar>>;
+        #endif // _IOSTREAM_
+        };
+        typedef int _Sequence;
+        struct sort_sequence{
+            static constexpr const base::_Sequence upper = 0;
+            static constexpr const base::_Sequence lower = 1;
+        };
         template <class _Ty,_Ty _Val>struct integral_constant{
             static constexpr _Ty value = _Val;
             using value_type = _Ty;
@@ -39,57 +53,76 @@ namespace KUR{
         using true_type = bool_constant<true>;
         using false_type = bool_constant<false>;
         template <typename... _Types>using void_t = void;
-        typedef int _Sequence;
-        struct sort_sequence{
-            static constexpr const base::_Sequence upper = 0;
-            static constexpr const base::_Sequence lower = 1;
-        };
         template <typename>inline constexpr bool _Always_false = false;
-        template<typename Tchar> struct CharT{
-        #ifdef __KUR_STRING
-            using char_t = std::basic_string<Tchar,std::char_traits<Tchar>,std::allocator<Tchar>>;
-        #endif // _XSTRING_
-        #ifdef  __KUR_IOSTREAM
-            using out_t = std::basic_ostream<Tchar,std::char_traits<Tchar>>;
-            using in_t = std::basic_istream<Tchar,std::char_traits<Tchar>>;
-        #endif // _IOSTREAM_
-        };
-        //typename base::enable_if<TRUE?>::type* = nullptr
         template<bool condition,typename T = void>struct enable_if{};
         template<typename T>struct enable_if<true,T>{ typedef T type; };
-        //is_same<T1,T2>::value
         template <typename T,typename U>struct is_same{
             static constexpr bool value = false;
         };
         template <typename T>struct is_same<T,T>{
             static constexpr bool value = true;
         };
+        template <typename _Ty>struct remove_cv{
+            using type = _Ty;
+            template <template <typename> class _Fn>using _Apply = _Fn<_Ty>;
+        };
+        template <typename _Ty>struct remove_cv<const _Ty>{
+            using type = _Ty;
+            template <template <typename> class _Fn>using _Apply = const _Fn<_Ty>;
+        };
+        template <typename _Ty>struct remove_cv<volatile _Ty>{
+            using type = _Ty;
+            template <template <typename> class _Fn>using _Apply = volatile _Fn<_Ty>;
+        };
+        template <typename _Ty>struct remove_cv<const volatile _Ty>{
+            using type = _Ty;
+            template <template <typename> class _Fn>using _Apply = const volatile _Fn<_Ty>;
+        };
+        template <class _Ty>using remove_cv_t = typename remove_cv<_Ty>::type;
+        template<bool _First_v,typename _First_t,typename..._Next_t>struct _Disjunction{
+            using type = _First_t;
+        };
+        template<typename _False,typename _First_t,typename..._Next_t>struct _Disjunction<false,_False,_First_t,_Next_t...>{
+            using type = typename _Disjunction<_First_t::value,_First_t,_Next_t...>::type;
+        };
+        template <class... _Traits>struct disjunction: false_type{};
+        template <class _First,class... _Next>struct disjunction<_First,_Next...>: _Disjunction<_First::value,_First,_Next...>::type{};
+        template <class... _Traits>inline constexpr bool disjunction_v = disjunction<_Traits...>::value;
+        template <class _Ty,class... _Types>inline constexpr bool _Is_any_of_v = disjunction_v<is_same<_Ty,_Types>...>;
         template<typename T>struct is_character{
-            static constexpr bool value = base::is_same<T,char>::value || base::is_same<T,wchar_t>::value || base::is_same<T,char16_t>::value || base::is_same<T,char32_t>::value;
+            static constexpr bool value = _Is_any_of_v<T,char,wchar_t,char16_t,char32_t>;
         };
         template<typename T>struct is_integral{
-            static constexpr bool value = base::is_same<T,bool>::value || base::is_same<T,char>::value || base::is_same<T,signed char>::value || base::is_same<T,unsigned char>::value || base::is_same<T,wchar_t>::value
-            #ifdef __cpp_char8_t
-                || base::is_same<T,char8_t>::value
-            #endif // __cpp_char8_t
-                || base::is_same<T,char16_t>::value || base::is_same<T,char32_t>::value || base::is_same<T,short>::value || base::is_same<T,unsigned short>::value || base::is_same<T,int>::value || base::is_same<T,unsigned int>::value || base::is_same<T,long>::value || base::is_same<T,unsigned long>::value || base::is_same<T,long long>::value || base::is_same<T,unsigned long long>::value;
+            static constexpr bool value = _Is_any_of_v<T,bool,char,signed char,unsigned char,wchar_t,
+            #ifdef __cpp_char8_t         
+                char8_t,
+            #endif
+                char16_t,char32_t,short,unsigned short,int,unsigned int,long,unsigned long,long long,unsigned long long>;
         };
+        template<typename _Ty>inline constexpr bool is_integral_v = is_integral<_Ty>::value;
+        template <class _Ty>inline constexpr bool is_floating_point_v = _Is_any_of_v<remove_cv_t<_Ty>,float,double,long double>;
+        template<typename _Ty,bool = is_integral_v<_Ty>>struct _Sign_base{
+            using _Uty = typename remove_cv<_Ty>::type;
+            static constexpr bool _Signed = static_cast<_Uty>(-1) < static_cast<_Uty>(0);
+            static constexpr bool _Unsigned = !_Signed;
+        };
+        template<typename _Ty>struct _Sign_base<_Ty,false>{
+            static constexpr bool _Signed = is_floating_point_v<_Ty>;
+            static constexpr bool _Unsigned = false;
+        };
+        template<typename _Ty>struct is_unsigned:bool_constant<_Sign_base<_Ty>::_Unsigned>{};
+        template <class _Ty>inline constexpr bool is_unsigned_v = _Sign_base<_Ty>::_Unsigned;
         template<typename _T0,typename _T1>using _Is_Same = typename base::enable_if<base::is_same<_T0,_T1>::value>::type*;
-        //is_lvalue_reference<T>::value
         template<typename T>struct is_lvalue_reference:base::false_type{};
         template<typename T>struct is_lvalue_reference<T&>:base::true_type{};
-        //is_rvalue_reference<T>::value
         template<typename T>struct is_rvalue_reference:base::false_type{};
         template<typename T>struct is_rvalue_reference<T&&>:base::true_type{};
-        //remove_reference<T>::type
         template<typename _Ty> struct remove_reference{ typedef _Ty type; };
         template<typename _Ty> struct remove_reference<_Ty&>{ typedef _Ty type; };
         template<typename _Ty> struct remove_reference<_Ty&&>{ typedef _Ty type; };
-        //move
         template <typename T>typename base::remove_reference<T>::type&& move(T&& _Ty){
             return static_cast<typename base::remove_reference<T>::type&&>(_Ty);
         };
-        //forward<_Tp>(...);
         template<typename _Tp>constexpr _Tp&& forward(typename base::remove_reference<_Tp>::type& _Arg)noexcept{//left value
             return static_cast<_Tp&&>(_Arg);
         };
@@ -118,6 +151,13 @@ namespace KUR{
         };
         template<typename _Ty1,typename _Ty2,typename = void>struct allow_equal_operator:base::false_type{};
         template<typename _Ty1,typename _Ty2>struct allow_equal_operator<_Ty1,_Ty2,base::void_t<decltype(base::declval<_Ty1>() == base::declval<_Ty2>())>>:base::true_type{};
+        template<bool _Test,typename _Ty1,typename _Ty2>struct conditional{
+            using type = _Ty1;
+        };
+        template<typename _Ty1,typename _Ty2>struct conditional<false,_Ty1,_Ty2>{
+            using type = _Ty2;
+        };
+        template <bool _Test,class _Ty1,class _Ty2>using conditional_t = typename conditional<_Test,_Ty1,_Ty2>::type;
         template<typename Tchar> inline static ull strlen(const Tchar* str){
             const Tchar* p = str;
             while (*p)++p;
@@ -485,7 +525,7 @@ namespace KUR{
             };
         };
         template<typename T>using array = Array<T>;
-        template<typename Tchar,ull baseN = 0x10,typename base::enable_if<base::is_character<Tchar>::value>::type* = nullptr>class String{
+        template<typename Tchar = char,ull baseN = 0x10,typename base::enable_if<base::is_character<Tchar>::value>::type* = nullptr>class String{
         public:
             base::Array<Tchar,baseN> data;
             String(){};
