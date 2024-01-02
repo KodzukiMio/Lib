@@ -24,6 +24,10 @@ namespace KUR{
     using ubyte2 = base::word;
     using ubyte4 = base::dword;
     using ubyte8 = base::qword;
+    template<size_t N>class ByteN{
+    public:
+        byte1 _data[N];
+    };
     template<typename T>class ByteArray{
     public:
         using _type = T;
