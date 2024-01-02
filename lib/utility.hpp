@@ -28,7 +28,7 @@ namespace KUR{
     public:
         using _type = T;
         using _base_byte = base::conditional_t<base::is_unsigned_v<T>,ubyte1,byte1>;
-        static_assert(base::is_integral<T>::value,"Integral type required.");
+        //static_assert(base::is_integral<T>::value,"Integral type required.");也许需要操作其它类型,例如struct什么的,所以去掉了
         constexpr static const ubyte1 length = sizeof(T);
         T data;
         inline _base_byte* begin(){
