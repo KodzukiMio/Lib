@@ -24,7 +24,7 @@ namespace KUR{
     using ubyte2 = base::word;
     using ubyte4 = base::dword;
     using ubyte8 = base::qword;
-    template<typename T>class ByteArray{//max size = 8;
+    template<typename T>class ByteArray{
     public:
         using _type = T;
         using _base_byte = base::conditional_t<base::is_unsigned_v<T>,ubyte1,byte1>;
