@@ -31,13 +31,14 @@ namespace KUR{
         if ((c >= 'a' && c <= 'f'))return c - 'a' + 10;
         return 0;
     };
-    template<typename T>inline void _Copy_From(const T& _Val,const base::ull N,byte1* _data){
+    template<typename T>inline void _Copy_From(const T& _Val,const base::ull N,byte1* _data){//用于覆盖内存,没有越界检查.
         base::ull _Len = base::minimum(N,sizeof(T));
         base::ull _Idx = -1;
         byte1* _Ptr = (byte1*)(&_Val);
         while ((++_Idx) < _Len)_data[_Idx] = _Ptr[_Idx];
     };
-    template<base::ull N,typename Ty = void>class ByteN{
+    //这个类大多时候并不用于储存,而是用于类型转换操作数据
+    template<base::ull N,typename Ty = void>class ByteN{//静态范围
     private:
         byte1 _data[N] = {0};
     public:
@@ -49,15 +50,15 @@ namespace KUR{
             return _data;
         };
     };
-    template<>class ByteN<0,void*>{
+    template<>class ByteN<0,void*>{//动态范围操作特化,用于绕过模板限制,参数并没有实际意义
     private:
-        byte1 _data;
+        byte1 _data;//用于获取ByteArray原始offset地址,并不直接使用
     public:
         inline byte1* get_bytes(){
             return &_data;
         };
         template<typename T>inline void operator=(const T& _Val){
-            KUR::_Copy_From<T>(_Val,-1,&_data);
+            KUR::_Copy_From<T>(_Val,-1,&_data);//-1确保始终选择sizeof(T)
         };
     };
     template<typename T>class ByteArray{
@@ -72,7 +73,7 @@ namespace KUR{
         inline _base_byte* end(){
             return static_cast<_base_byte*>(&data + 1);
         };
-        template<typename Ty = _base_byte>inline Ty& refbytes(const base::ull _offset,const base::ull _base_offset = 0){
+        template<typename Ty = _base_byte>inline Ty& refbytes(const base::ull _offset,const base::ull _base_offset = 0){//_offset是Ty类型的偏移量(sizeof(Ty)),_base_offset是字节偏移量(size==1)
             return (Ty&)(*((Ty*)((_base_byte*)&data + _base_offset) + _offset));
         };
         inline auto& operator[](const base::ull idx){
