@@ -79,21 +79,21 @@ namespace KUR{
             template <template <typename> class _Fn>using _Apply = const volatile _Fn<_Ty>;
         };
         template <class _Ty>using remove_cv_t = typename remove_cv<_Ty>::type;
-        template<bool _First_v,typename _First_t,typename..._Next_t>struct _Disjunction{
-            using type = _First_t;
+        template<bool _True,typename _Itr_v,typename..._Next_t>struct _Disjunction{
+            using type = _Itr_v;
         };
-        template<typename _False,typename _First_t,typename..._Next_t>struct _Disjunction<false,_False,_First_t,_Next_t...>{
-            using type = typename _Disjunction<_First_t::value,_First_t,_Next_t...>::type;
+        template<typename _False,typename _Itr_v,typename..._Next_t>struct _Disjunction<false,_False,_Itr_v,_Next_t...>{
+            using type = typename _Disjunction<_Itr_v::value,_Itr_v,_Next_t...>::type;
         };
         template <class... _Traits>struct disjunction: false_type{};
-        template <class _First,class... _Next>struct disjunction<_First,_Next...>: _Disjunction<_First::value,_First,_Next...>::type{};
+        template <class _Itr_t,class... _Next>struct disjunction<_Itr_t,_Next...>: _Disjunction<_Itr_t::value,_Itr_t,_Next...>::type{};
         template <class... _Traits>inline constexpr bool disjunction_v = disjunction<_Traits...>::value;
         template <class _Ty,class... _Types>inline constexpr bool _Is_any_of_v = disjunction_v<is_same<_Ty,_Types>...>;
-        template<typename T>struct is_character{
-            static constexpr bool value = _Is_any_of_v<T,char,wchar_t,char16_t,char32_t>;
+        template<typename _Ty>struct is_character{
+            static constexpr bool value = _Is_any_of_v<remove_cv_t<_Ty>,char,wchar_t,char16_t,char32_t>;
         };
-        template<typename T>struct is_integral{
-            static constexpr bool value = _Is_any_of_v<T,bool,char,signed char,unsigned char,wchar_t,
+        template<typename _Ty>struct is_integral{
+            static constexpr bool value = _Is_any_of_v<remove_cv_t<_Ty>,bool,char,signed char,unsigned char,wchar_t,
             #ifdef __cpp_char8_t         
                 char8_t,
             #endif
@@ -112,6 +112,8 @@ namespace KUR{
         };
         template<typename _Ty>struct is_unsigned:bool_constant<_Sign_base<_Ty>::_Unsigned>{};
         template <class _Ty>inline constexpr bool is_unsigned_v = _Sign_base<_Ty>::_Unsigned;
+        template<typename _Ty>struct is_signed:bool_constant<_Sign_base<_Ty>::_Signed>{};
+        template <class _Ty>inline constexpr bool is_signed_v = _Sign_base<_Ty>::_Signed;
         template<typename _T0,typename _T1>using _Is_Same = typename base::enable_if<base::is_same<_T0,_T1>::value>::type*;
         template<typename T>struct is_lvalue_reference:base::false_type{};
         template<typename T>struct is_lvalue_reference<T&>:base::true_type{};
