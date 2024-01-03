@@ -90,7 +90,11 @@ namespace KUR{
         template <class... _Traits>inline constexpr bool disjunction_v = disjunction<_Traits...>::value;
         template <class _Ty,class... _Types>inline constexpr bool _Is_any_of_v = disjunction_v<is_same<_Ty,_Types>...>;
         template<typename _Ty>struct is_character{
-            static constexpr bool value = _Is_any_of_v<remove_cv_t<_Ty>,char,wchar_t,char16_t,char32_t>;
+            static constexpr bool value = _Is_any_of_v<remove_cv_t<_Ty>,char,signed char,unsigned char,wchar_t,
+            #ifdef __cpp_char8_t         
+                char8_t,
+            #endif
+                char16_t,char32_t>;
         };
         template<typename _Ty>struct is_integral{
             static constexpr bool value = _Is_any_of_v<remove_cv_t<_Ty>,bool,char,signed char,unsigned char,wchar_t,
