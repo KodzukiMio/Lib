@@ -295,11 +295,8 @@ namespace KUR{
             auto _Pos = _Middle;
             _Tp* _Tp_ = _Tmp;
             while (_Beg < _Middle && _Pos < _End){
-                if (_CmpPfn(_Beg,_Pos)){
-                    *_Tp_++ = *_Beg++;
-                } else{
-                    *_Tp_++ = *_Pos++;
-                };
+                if (_CmpPfn(_Beg,_Pos))*_Tp_++ = *_Beg++;
+                else *_Tp_++ = *_Pos++;
             };
             while (_Beg < _Middle)*_Tp_++ = *_Beg++;
             while (_Pos < _End)*_Tp_++ = *_Pos++;
@@ -400,7 +397,7 @@ namespace KUR{
                 this->_chunk = Malloc(initSize);
             };
             inline void move_from(Array&& other)noexcept{
-                if (_chunk)delete _chunk;
+                if (_chunk)delete[] _chunk;
                 this->_chunk = other._chunk;
                 this->_size = other._size;
                 this->_pos = other._pos;
@@ -502,7 +499,8 @@ namespace KUR{
             #ifdef KURZER_ENABLE_EXCEPTIONS
                 if (index >= _pos)throw std::runtime_error("Array<T> out of range !");
             #endif // KURZER_ENABLE_EXCEPTIONS
-                for (ull i = index; i < _pos - 1; ++i)_chunk[i] = _chunk[i + 1];
+                auto _pos0 = _pos - 1;
+                for (ull i = index; i < _pos0; ++i)_chunk[i] = _chunk[i + 1];
                 --_pos;
                 return _chunk + index;
             };

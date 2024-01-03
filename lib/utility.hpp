@@ -30,16 +30,16 @@ namespace KUR{
         if ((c >= 'a' && c <= 'f'))return c - 'a' + 10;
         return 0;
     };
-    template<typename T>inline void _Copy_To(const T& _Val,const base::ull N,byte1* _data){//ç”¨äºè¦†ç›–å†…å­˜
-        base::ull _Len = base::minimum(N,sizeof(T));//é˜²æ­¢è¶Šç•Œ
+    template<typename T>inline void _Copy_To(const T& _Val,const base::ull N,byte1* _data){//ÓÃÓÚ¸²¸ÇÄÚ´æ
+        base::ull _Len = base::minimum(N,sizeof(T));//·ÀÖ¹Ô½½ç
         base::ull _Idx = -1;
         byte1* _Ptr = (byte1*)(&_Val);
         while ((++_Idx) < _Len)_data[_Idx] = _Ptr[_Idx];
     };
-    //æ­¤ç±»å¤§å¤šæ—¶å€™å¹¶ä¸ç”¨äºå‚¨å­˜,è€Œæ˜¯ç”¨äºç±»å‹è½¬æ¢æ“ä½œæ•°æ®
-    template<base::ull N,typename Ty = void>class ByteN{//é™æ€èŒƒå›´
+    //´ËÀà´ó¶àÊ±ºò²¢²»ÓÃÓÚ´¢´æ,¶øÊÇÓÃÓÚÀàĞÍ×ª»»²Ù×÷Êı¾İ
+    template<base::ull N,typename Ty = void>class ByteN{//¾²Ì¬·¶Î§
     private:
-        byte1 _data[N] = {0};//å‚¨å­˜å’ŒèŒƒå›´è¡¨ç¤º
+        byte1 _data[N] = {0};//´¢´æºÍ·¶Î§±íÊ¾
     public:
         template<typename T>inline void operator=(const T& _Val){
             KUR::_Copy_To<T>(_Val,N,_data);
@@ -49,21 +49,21 @@ namespace KUR{
             return _data;
         };
     };
-    template<>class ByteN<0,void*>{//åŠ¨æ€èŒƒå›´æ“ä½œç‰¹åŒ–,ç”¨äºç»•è¿‡æ¨¡æ¿é™åˆ¶,å‚æ•°å¹¶æ²¡æœ‰å®é™…æ„ä¹‰
+    template<>class ByteN<0,void*>{//¶¯Ì¬·¶Î§²Ù×÷ÌØ»¯,ÓÃÓÚÈÆ¹ıÄ£°åÏŞÖÆ,²ÎÊı²¢Ã»ÓĞÊµ¼ÊÒâÒå
     private:
-        byte1 _data;//ç”¨äºè·å–ByteArrayåŸå§‹offsetåœ°å€,å¹¶ä¸ç›´æ¥ä½¿ç”¨
+        byte1 _data;//ÓÃÓÚ»ñÈ¡ByteArrayÔ­Ê¼offsetµØÖ·,²¢²»Ö±½ÓÊ¹ÓÃ
     public:
         inline byte1* get_bytes(){
             return &_data;
         };
         template<typename T>inline void operator=(const T& _Val){
-            KUR::_Copy_To<T>(_Val,-1,&_data);//-1ç¡®ä¿å§‹ç»ˆé€‰æ‹©sizeof(T)
+            KUR::_Copy_To<T>(_Val,-1,&_data);//-1È·±£Ê¼ÖÕÑ¡Ôñsizeof(T)
         };
     };
     template<typename T>class ByteArray{
     public:
         using _type = T;
-        using _base_byte = base::conditional_t<base::is_unsigned_v<T>,ubyte1,byte1>;
+        using _base_byte = base::conditional_t<base::is_unsigned_v<T>,ubyte1,byte1>;//Ñ¡Ôñ·ûºÅ
         constexpr static const base::ull length = sizeof(T);
         T data;
         inline _base_byte* begin(){
@@ -72,7 +72,7 @@ namespace KUR{
         inline _base_byte* end(){
             return static_cast<_base_byte*>(&data + 1);
         };
-        template<typename Ty = _base_byte>inline Ty& refbytes(const base::ull _offset,const base::ull _base_offset = 0){//_offsetæ˜¯Tyç±»å‹çš„åç§»é‡(sizeof(Ty)),_base_offsetæ˜¯å­—èŠ‚åç§»é‡(size==1)
+        template<typename Ty = _base_byte>inline Ty& refbytes(const base::ull _offset,const base::ull _base_offset = 0){//_offsetÊÇTyÀàĞÍµÄÆ«ÒÆÁ¿(sizeof(Ty)),_base_offsetÊÇ×Ö½ÚÆ«ÒÆÁ¿(size=1)
         #ifdef KURZER_ENABLE_EXCEPTIONS
             if (_offset * sizeof(Ty) + _base_offset >= length)throw std::runtime_error("Out of range !");
         #endif
@@ -85,16 +85,14 @@ namespace KUR{
             static_assert(_RangeR <= length,"Out of range !");
             return this->refbytes<ByteN<_RangeR - _RangeL>>(0,_RangeL);
         };
-        inline ByteN<0,void*>& at(base::ull _offset){
+        inline ByteN<0,void*>& at(const base::ull _offset){
             return  this->refbytes<ByteN<0,void*>>(0,_offset);
         };
-        inline void print_range_hex(base::ull _range_l,base::ull _range_r){
+        inline void print_range_hex(const base::ull _range_l,base::ull _range_r){
             std::ios_base::fmtflags original_flags = std::cout.flags();
             std::cout << std::hex;
             _base_byte* _Ptr = (_base_byte*)(&data);
-            while (_range_l < _range_r){
-                std::cout << static_cast<int>((ubyte1)_Ptr[--_range_r]);
-            };
+            while (_range_l < _range_r)std::cout << static_cast<byte4>((ubyte1)_Ptr[--_range_r]);
             std::cout.flags(original_flags);
         };
     };
