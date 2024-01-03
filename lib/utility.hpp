@@ -31,19 +31,19 @@ namespace KUR{
         if ((c >= 'a' && c <= 'f'))return c - 'a' + 10;
         return 0;
     };
-    template<typename T>inline void _Copy_From(const T& _Val,const base::ull N,byte1* _data){//用于覆盖内存,没有越界检查.
-        base::ull _Len = base::minimum(N,sizeof(T));
+    template<typename T>inline void _Copy_To(const T& _Val,const base::ull N,byte1* _data){//用于覆盖内存
+        base::ull _Len = base::minimum(N,sizeof(T));//防止越界
         base::ull _Idx = -1;
         byte1* _Ptr = (byte1*)(&_Val);
         while ((++_Idx) < _Len)_data[_Idx] = _Ptr[_Idx];
     };
-    //这个类大多时候并不用于储存,而是用于类型转换操作数据
+    //此类大多时候并不用于储存,而是用于类型转换操作数据
     template<base::ull N,typename Ty = void>class ByteN{//静态范围
     private:
-        byte1 _data[N] = {0};
+        byte1 _data[N] = {0};//储存和范围表示
     public:
         template<typename T>inline void operator=(const T& _Val){
-            KUR::_Copy_From<T>(_Val,N,_data);
+            KUR::_Copy_To<T>(_Val,N,_data);
         };
         constexpr static const base::ull length = N;
         inline byte1* get_bytes(){
@@ -58,7 +58,7 @@ namespace KUR{
             return &_data;
         };
         template<typename T>inline void operator=(const T& _Val){
-            KUR::_Copy_From<T>(_Val,-1,&_data);//-1确保始终选择sizeof(T)
+            KUR::_Copy_To<T>(_Val,-1,&_data);//-1确保始终选择sizeof(T)
         };
     };
     template<typename T>class ByteArray{
@@ -74,12 +74,16 @@ namespace KUR{
             return static_cast<_base_byte*>(&data + 1);
         };
         template<typename Ty = _base_byte>inline Ty& refbytes(const base::ull _offset,const base::ull _base_offset = 0){//_offset是Ty类型的偏移量(sizeof(Ty)),_base_offset是字节偏移量(size==1)
+        #ifdef KURZER_ENABLE_EXCEPTIONS
+            if (_offset * sizeof(Ty) + _base_offset >= length)throw std::runtime_error("Out of range !");
+        #endif
             return (Ty&)(*((Ty*)((_base_byte*)&data + _base_offset) + _offset));
         };
         inline auto& operator[](const base::ull idx){
             return this->refbytes<_base_byte>(idx);
         };
         template<base::ull _RangeL,base::ull _RangeR>inline ByteN<_RangeR - _RangeL>& range(){
+            static_assert(_RangeR <= length,"Out of range !");
             return this->refbytes<ByteN<_RangeR - _RangeL>>(0,_RangeL);
         };
         inline ByteN<0,void*>& at(base::ull _offset){
