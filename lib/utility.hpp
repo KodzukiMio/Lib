@@ -3,7 +3,6 @@
 #include"_string.hpp"
 #include"base.hpp"
 #include <cstdint>
-#include<initializer_list>
 namespace KUR{
     namespace base{
         using sbyte = std::int8_t;
@@ -31,16 +30,16 @@ namespace KUR{
         if ((c >= 'a' && c <= 'f'))return c - 'a' + 10;
         return 0;
     };
-    template<typename T>inline void _Copy_To(const T& _Val,const base::ull N,byte1* _data){//ÓÃÓÚ¸²¸ÇÄÚ´æ
-        base::ull _Len = base::minimum(N,sizeof(T));//·ÀÖ¹Ô½½ç
+    template<typename T>inline void _Copy_To(const T& _Val,const base::ull N,byte1* _data){//ç”¨äºè¦†ç›–å†…å­˜
+        base::ull _Len = base::minimum(N,sizeof(T));//é˜²æ­¢è¶Šç•Œ
         base::ull _Idx = -1;
         byte1* _Ptr = (byte1*)(&_Val);
         while ((++_Idx) < _Len)_data[_Idx] = _Ptr[_Idx];
     };
-    //´ËÀà´ó¶àÊ±ºò²¢²»ÓÃÓÚ´¢´æ,¶øÊÇÓÃÓÚÀàĞÍ×ª»»²Ù×÷Êı¾İ
-    template<base::ull N,typename Ty = void>class ByteN{//¾²Ì¬·¶Î§
+    //æ­¤ç±»å¤§å¤šæ—¶å€™å¹¶ä¸ç”¨äºå‚¨å­˜,è€Œæ˜¯ç”¨äºç±»å‹è½¬æ¢æ“ä½œæ•°æ®
+    template<base::ull N,typename Ty = void>class ByteN{//é™æ€èŒƒå›´
     private:
-        byte1 _data[N] = {0};//´¢´æºÍ·¶Î§±íÊ¾
+        byte1 _data[N] = {0};//å‚¨å­˜å’ŒèŒƒå›´è¡¨ç¤º
     public:
         template<typename T>inline void operator=(const T& _Val){
             KUR::_Copy_To<T>(_Val,N,_data);
@@ -50,15 +49,15 @@ namespace KUR{
             return _data;
         };
     };
-    template<>class ByteN<0,void*>{//¶¯Ì¬·¶Î§²Ù×÷ÌØ»¯,ÓÃÓÚÈÆ¹ıÄ£°åÏŞÖÆ,²ÎÊı²¢Ã»ÓĞÊµ¼ÊÒâÒå
+    template<>class ByteN<0,void*>{//åŠ¨æ€èŒƒå›´æ“ä½œç‰¹åŒ–,ç”¨äºç»•è¿‡æ¨¡æ¿é™åˆ¶,å‚æ•°å¹¶æ²¡æœ‰å®é™…æ„ä¹‰
     private:
-        byte1 _data;//ÓÃÓÚ»ñÈ¡ByteArrayÔ­Ê¼offsetµØÖ·,²¢²»Ö±½ÓÊ¹ÓÃ
+        byte1 _data;//ç”¨äºè·å–ByteArrayåŸå§‹offsetåœ°å€,å¹¶ä¸ç›´æ¥ä½¿ç”¨
     public:
         inline byte1* get_bytes(){
             return &_data;
         };
         template<typename T>inline void operator=(const T& _Val){
-            KUR::_Copy_To<T>(_Val,-1,&_data);//-1È·±£Ê¼ÖÕÑ¡Ôñsizeof(T)
+            KUR::_Copy_To<T>(_Val,-1,&_data);//-1ç¡®ä¿å§‹ç»ˆé€‰æ‹©sizeof(T)
         };
     };
     template<typename T>class ByteArray{
@@ -73,7 +72,7 @@ namespace KUR{
         inline _base_byte* end(){
             return static_cast<_base_byte*>(&data + 1);
         };
-        template<typename Ty = _base_byte>inline Ty& refbytes(const base::ull _offset,const base::ull _base_offset = 0){//_offsetÊÇTyÀàĞÍµÄÆ«ÒÆÁ¿(sizeof(Ty)),_base_offsetÊÇ×Ö½ÚÆ«ÒÆÁ¿(size==1)
+        template<typename Ty = _base_byte>inline Ty& refbytes(const base::ull _offset,const base::ull _base_offset = 0){//_offsetæ˜¯Tyç±»å‹çš„åç§»é‡(sizeof(Ty)),_base_offsetæ˜¯å­—èŠ‚åç§»é‡(size==1)
         #ifdef KURZER_ENABLE_EXCEPTIONS
             if (_offset * sizeof(Ty) + _base_offset >= length)throw std::runtime_error("Out of range !");
         #endif
