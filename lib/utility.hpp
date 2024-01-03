@@ -25,10 +25,10 @@ namespace KUR{
     using ubyte2 = base::word;
     using ubyte4 = base::dword;
     using ubyte8 = base::qword;
-    inline byte1 tohex(char c){
+    inline byte1 hex_to_dec(char c){
         if (c >= '0' && c <= '9')return c - '0';
-        if ((c >= 'A' && c <= 'F'))return c - 'A' + 10;
         if ((c >= 'a' && c <= 'f'))return c - 'a' + 10;
+        if ((c >= 'A' && c <= 'F'))return c - 'A' + 10;
     #ifdef KURZER_ENABLE_EXCEPTIONS//debug模式自动开启
         throw std::runtime_error("Error Value !");
     #endif
@@ -71,7 +71,7 @@ namespace KUR{
             KUR::_copy_to<T>(_Val,base::npos,&_data);//base::npos确保始终选择sizeof(T).
         };
     };
-    //<T>不建议使用非POD类型.用于对类型T进行字节级别的操作;
+    //用于对类型T进行字节级别的操作;<T>不建议使用非POD类型.
     //类实例化大小与T一致(sizeof(T)==sizeof(ByteArray<T>))=>true.
     template<typename T>class ByteArray{
     public:
