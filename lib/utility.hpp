@@ -25,7 +25,7 @@ namespace KUR{
     using ubyte2 = base::word;
     using ubyte4 = base::dword;
     using ubyte8 = base::qword;
-    inline byte1 hex_to_dec(char c){
+    [[nodiscard]] inline byte1 hex_to_dec(char c){
         if (c >= '0' && c <= '9')return c - '0';
         if ((c >= 'a' && c <= 'f'))return c - 'a' + 10;
         if ((c >= 'A' && c <= 'F'))return c - 'A' + 10;

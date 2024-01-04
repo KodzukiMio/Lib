@@ -480,6 +480,9 @@ namespace KUR{
             inline bool is_full(){
                 return this->_pos + 1 == this->_size;
             };
+            inline Type* data(){
+                return this->_chunk;
+            };
             inline void Free(){
                 if (_chunk){
                     delete[] _chunk;
