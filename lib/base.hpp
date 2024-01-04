@@ -369,8 +369,6 @@ namespace KUR{
     #define _KUR_TEMPLATE_TYPE_IS(Type,Is_Ty)template <typename Type,typename base::enable_if_t<base::is_same<Type,Is_Ty>::value>* = nullptr>
     //_KUR_TEMPLATE_T_IS(T2)
     #define _KUR_TEMPLATE_T_IS(Is_Ty) _KUR_TEMPLATE_TYPE_IS(T,Is_Ty) 
-    #pragma warning(disable : 6385)
-    #pragma warning(disable : 6386)
         template<typename Type,ull init_size = 0x10>class Array{
         public:
             bool _allow_del = true;
@@ -446,11 +444,11 @@ namespace KUR{
                 return new Type[nsize];
             };
             inline Type& operator[](ull index){
-                KUR_DEBUG_ASSERT(if (index >= _pos || index < 0)throw std::runtime_error("Array<T> out of range !"););
+                KUR_DEBUG_ASSERT(if (index >= _pos)throw std::runtime_error("Array<T> out of range !"););
                 return *(this->_chunk + index);
             };
             inline const Type& operator[](ull index) const{
-                KUR_DEBUG_ASSERT(if (index >= _pos || index < 0)throw std::runtime_error("Array<T> out of range !"););
+                KUR_DEBUG_ASSERT(if (index >= _pos)throw std::runtime_error("Array<T> out of range !"););
                 return *(this->_chunk + index);
             };
             inline Type* operator()(ull index){
