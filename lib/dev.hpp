@@ -300,10 +300,9 @@ namespace KUR{
             return count;
         };
         void getFiles(std::string path,std::vector<std::string>& files){
-            using namespace std;
             intptr_t hFile = 0;
             struct _finddata_t fileinfo;
-            string p;
+            std::string p;
             if ((hFile = _findfirst(p.assign(path).append("\\*").c_str(),&fileinfo)) != -1){
                 do{
                     if ((fileinfo.attrib & _A_SUBDIR)){
@@ -335,13 +334,12 @@ namespace KUR{
             for_each(vec.begin(),vec.end(),[&,_firdisplay](const std::wstring& t){ std::wcout << _firdisplay << t << std::endl; });
         };
         std::string getCmdResult(const std::string& strCmd){
-            using namespace std;
             char buf[8191] = {0};
             FILE* pf = NULL;
             if ((pf = _popen(strCmd.c_str(),"r")) == NULL){
                 return "";
             };
-            string strResult;
+            std::string strResult;
             while (fgets(buf,sizeof buf,pf)){
                 strResult += buf;
             };
@@ -1140,7 +1138,6 @@ namespace KUR{
             };
             // 巨慢实现,不要用
             static std::string* encryption(const std::string key,const std::wstring& wstr){
-                using namespace std;
                 const int max = 1024;
                 const char* p = key.c_str();
                 const int p_len = (int)key.length();
@@ -1151,24 +1148,24 @@ namespace KUR{
                     seed_max += int(*(p + i));
                 };
                 srand(seed);
-                wstring ws = wstr + L"   ";
+                std::wstring ws = wstr + L"   ";
                 const wchar_t* ws_p = ws.c_str();
                 int ws_len = (int)(ws.length() - 2);
                 int* ws_seed = new int[ws_len];
                 int* ws_int = new int[ws_len];
                 int* ws_res = new int[ws_len];
                 int* ws_res_len = new int[ws_len];
-                string keylen,ws_result;
+                std::string keylen,ws_result;
                 for (int i = 0; i < ws_len; i++){
                     ws_int[i] = int(ws_p[i]);
                     ws_seed[i] = rand();
                     ws_res[i] = ws_int[i] + ws_seed[i];
-                    ws_res_len[i] = (int)to_string(ws_res[i]).length();
-                    keylen += to_string(ws_res_len[i]);
-                    ws_result += to_string(ws_res[i]);
+                    ws_res_len[i] = (int)std::to_string(ws_res[i]).length();
+                    keylen += std::to_string(ws_res_len[i]);
+                    ws_result += std::to_string(ws_res[i]);
                 };
-                string key_ = "K" + keylen;
-                string* resu = new string(ws_result + key_);
+                std::string key_ = "K" + keylen;
+                std::string* resu = new std::string(ws_result + key_);
                 delete[] ws_seed;
                 delete[] ws_int;
                 delete[] ws_res;
@@ -1230,7 +1227,7 @@ namespace KUR{
                     W_ = wchar_t(w);
                     W << W_;
                 };
-                wstring ws;
+                std::wstring ws;
                 wchar_t wt;
                 while (!W.isempty()){
                     wt << W;
@@ -1238,7 +1235,7 @@ namespace KUR{
                 };
                 delete[] ch_;
                 delete[] NUM;
-                wstring* ws_ = new wstring;
+                std::wstring* ws_ = new std::wstring;
                 *ws_ = ws;
                 return ws_;
             };
