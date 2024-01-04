@@ -477,6 +477,11 @@ namespace KUR{
                 *(this->_chunk + _pos) = value;
                 ++_pos;
             };
+            template<typename T> inline void push_back(const T value){
+                if (this->_pos >= this->_size)expand();
+                *(this->_chunk + _pos) = value;
+                ++_pos;
+            };
             inline bool is_full(){
                 return this->_pos + 1 == this->_size;
             };
@@ -494,12 +499,18 @@ namespace KUR{
             inline void clear(){
                 this->_pos = 0;
             };
+            inline Type& at(base::ull _Pos){
+                return *(this->_chunk + _Pos);
+            };
             inline Type* begin(){ return _chunk; };
             inline Type* end(){ return this->_chunk + _pos; };
             inline Type* last(){ return this->_chunk + _pos - 1; };
             inline Type* pop(){
                 if (!_pos)return nullptr;
                 return this->_chunk + --_pos;
+            };
+            inline void pop_back(){
+                --_pos;
             };
             ~Array(){
                 if (_chunk && _allow_del)delete[] _chunk;
@@ -532,6 +543,7 @@ namespace KUR{
             };
         };
         template<typename T>using array = Array<T>;
+        template<typename Type,ull init_size = 0x10>using vector = Array<Type,init_size>;
         template<typename Tchar = char,ull baseN = 0x10,typename base::enable_if<base::is_character<Tchar>::value>::type* = nullptr>class String{
         public:
             base::Array<Tchar,baseN> data;
@@ -615,6 +627,9 @@ namespace KUR{
             };
             inline void push_back(Tchar str){
                 this->data.push(str);
+            };
+            inline void pop_back(){
+                this->data.pop_back();
             };
         #ifdef __KUR_IOSTREAM
             friend typename base::CharT<Tchar>::out_t& operator<<(typename base::CharT<Tchar>::out_t& os,const String<Tchar>& str){
@@ -1113,5 +1128,9 @@ namespace KUR{
         };
         template<typename T>using aho_corasick = Aho_Corasick<T>;
     };
+    using KUR::base::vector;
+    using KUR::base::string;
+    using KUR::base::wstring;
+    using KUR::base::queue;
 };
-namespace kurzer = KUR::base;
+namespace kur = KUR;

@@ -5,7 +5,7 @@
 #include"utility.hpp"
 #include"plus.hpp"
 
-namespace kur{
+namespace kurzer{
     using namespace KUR;
     using namespace KUR::LB2022;
     using namespace KUR::LB2023;
