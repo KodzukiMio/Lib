@@ -1075,6 +1075,7 @@ namespace KUR{
                 return next_nodes.size();
             };
         };
+        //未完成
         template<typename T,ull init_size = 0x10>class Aho_Corasick:public TrieTree<T,init_size,trie_ac_node<T,init_size>>{
         public:
             using _type = Aho_Corasick;

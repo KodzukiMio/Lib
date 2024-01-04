@@ -3,8 +3,8 @@
 #include <string> 
 #include <cstdint>
 #include <cstring>
-#define __KUR_ENABLE_IOSTREAM//ç”¨äºå¼€å¯base.hppå¯¹stlçš„æ”¯æŒ
-#define __KUR_ENABLE_STRING//åŒä¸Š
+#define __KUR_ENABLE_IOSTREAM//ÓÃÓÚ¿ªÆôbase.hpp¶ÔstlµÄÖ§³Ö
+#define __KUR_ENABLE_STRING//Í¬ÉÏ
 #include "base.hpp"
 namespace KUR{
     namespace base{
@@ -29,12 +29,12 @@ namespace KUR{
         if (c >= '0' && c <= '9')return c - '0';
         if ((c >= 'a' && c <= 'f'))return c - 'a' + 10;
         if ((c >= 'A' && c <= 'F'))return c - 'A' + 10;
-    #ifdef KURZER_ENABLE_EXCEPTIONS//debugæ¨¡å¼è‡ªåŠ¨å¼€å¯
+    #ifdef KURZER_ENABLE_EXCEPTIONS//debugÄ£Ê½×Ô¶¯¿ªÆô
         throw std::runtime_error("Error Value !");
     #endif
         return 0;
     };
-    template<typename T>inline void _copy_to(const T& _Val,const base::ull N,byte1* _Data){//ç”¨äºè¦†ç›–å†…å­˜,æ³¨æ„:ä¸è¿›è¡Œè¶Šç•Œæ£€æŸ¥!
+    template<typename T>inline void _copy_to(const T& _Val,const base::ull N,byte1* _Data){//ÓÃÓÚ¸²¸ÇÄÚ´æ,×¢Òâ:²»½øĞĞÔ½½ç¼ì²é!
     #ifndef KURZER_ENABLE_EXCEPTIONS
         std::memcpy(_Data,&_Val,base::minimum(N,sizeof(T)));
     #else
@@ -44,11 +44,11 @@ namespace KUR{
         while ((++_Idx) < _Len)_Data[_Idx] = _Ptr[_Idx];
     #endif // NDEBUG
     };
-    //æ­¤ç±»å¤§å¤šæ—¶å€™å¹¶ä¸ç”¨äºå‚¨å­˜,è€Œæ˜¯ç”¨äºç±»å‹è½¬æ¢æ“ä½œæ•°æ®;
-    //æ³¨æ„:ä½¿ç”¨æ—¶ç¡®ä¿äº†è§£å†…å­˜å¸ƒå±€,å¦åˆ™ä¸å»ºè®®ä½¿ç”¨.
-    template<base::ull N,typename Ty = void>class ByteN{//é™æ€èŒƒå›´
+    //´ËÀà´ó¶àÊ±ºò²¢²»ÓÃÓÚ´¢´æ,¶øÊÇÓÃÓÚÀàĞÍ×ª»»²Ù×÷Êı¾İ;
+    //×¢Òâ:Ê¹ÓÃÊ±È·±£ÁË½âÄÚ´æ²¼¾Ö,·ñÔò²»½¨ÒéÊ¹ÓÃ.
+    template<base::ull N,typename Ty = void>class ByteN{//¾²Ì¬·¶Î§
     private:
-        byte1 _data[N] = {0};//å‚¨å­˜å’ŒèŒƒå›´è¡¨ç¤º
+        byte1 _data[N] = {0};//´¢´æºÍ·¶Î§±íÊ¾
     public:
         template<typename T>inline void operator=(const T& _Val){
             KUR::_copy_to<T>(_Val,N,_data);
@@ -58,25 +58,25 @@ namespace KUR{
             return _data;
         };
     };
-    //ByteN<N>ä¸ŠèŒƒå›´æ“ä½œç‰¹åŒ–,ç”¨äºç»•è¿‡æ¨¡æ¿é™åˆ¶,å‚æ•°å¹¶æ²¡æœ‰å®é™…æ„ä¹‰.
-    //å»ºè®®ä¸è¦ç›´æ¥ä½¿ç”¨è¿™ä¸ªç‰¹åŒ–ç‰ˆæœ¬,é™¤éç¡®å®æ˜ç™½è‡ªå·±åœ¨åšä»€ä¹ˆ.
+    //ByteN<N>ÉÏ·¶Î§²Ù×÷ÌØ»¯,ÓÃÓÚÈÆ¹ıÄ£°åÏŞÖÆ,²ÎÊı²¢Ã»ÓĞÊµ¼ÊÒâÒå.
+    //½¨Òé²»ÒªÖ±½ÓÊ¹ÓÃÕâ¸öÌØ»¯°æ±¾,³ı·ÇÈ·ÊµÃ÷°××Ô¼ºÔÚ×öÊ²Ã´.
     template<>class ByteN<0,void*>{
     private:
-        byte1 _data;//ç”¨äºè·å–ByteArrayåŸå§‹offsetåœ°å€,å¹¶ä¸ç›´æ¥ä½¿ç”¨.
+        byte1 _data;//ÓÃÓÚ»ñÈ¡ByteArrayÔ­Ê¼offsetµØÖ·,²¢²»Ö±½ÓÊ¹ÓÃ.
     public:
         inline byte1* get_bytes(){
             return &_data;
         };
         template<typename T>inline void operator=(const T& _Val){
-            KUR::_copy_to<T>(_Val,base::npos,&_data);//base::nposç¡®ä¿å§‹ç»ˆé€‰æ‹©sizeof(T).
+            KUR::_copy_to<T>(_Val,base::npos,&_data);//base::nposÈ·±£Ê¼ÖÕÑ¡Ôñsizeof(T).
         };
     };
-    //ç”¨äºå¯¹ç±»å‹Tè¿›è¡Œå­—èŠ‚çº§åˆ«çš„æ“ä½œ;<T>ä¸å»ºè®®ä½¿ç”¨éPODç±»å‹.
-    //ç±»å®ä¾‹åŒ–å¤§å°ä¸Tä¸€è‡´(sizeof(T)==sizeof(ByteArray<T>))=>true.
+    //ÓÃÓÚ¶ÔÀàĞÍT½øĞĞ×Ö½Ú¼¶±ğµÄ²Ù×÷;<T>²»½¨ÒéÊ¹ÓÃ·ÇPODÀàĞÍ.
+    //ÀàÊµÀı»¯´óĞ¡ÓëTÒ»ÖÂ(sizeof(T)==sizeof(ByteArray<T>))=>true.
     template<typename T>class ByteArray{
     public:
         using _type = T;
-        using _base_byte = base::conditional_t<base::is_unsigned_v<T>,ubyte1,byte1>;//é€‰æ‹©ç¬¦å·.
+        using _base_byte = base::conditional_t<base::is_unsigned_v<T>,ubyte1,byte1>;//Ñ¡Ôñ·ûºÅ.
         constexpr static const base::ull length = sizeof(T);
         T data;
         inline _base_byte* begin(){
@@ -85,27 +85,27 @@ namespace KUR{
         inline _base_byte* end(){
             return static_cast<_base_byte*>(&data + 1);
         };
-        //_offsetæ˜¯Tyç±»å‹çš„åç§»é‡(sizeof(Ty)),_base_offsetæ˜¯å­—èŠ‚åç§»é‡(size=1)
+        //_offsetÊÇTyÀàĞÍµÄÆ«ÒÆÁ¿(sizeof(Ty)),_base_offsetÊÇ×Ö½ÚÆ«ÒÆÁ¿(size=1)
         template<typename Ty = _base_byte>inline Ty& refbytes(const base::ull _offset,const base::ull _base_offset = 0){
         #ifdef KURZER_ENABLE_EXCEPTIONS
             if (_offset * sizeof(Ty) + _base_offset >= length)throw std::runtime_error("Out of range !");
         #endif
-            return (Ty&)(*((Ty*)((_base_byte*)&data + _base_offset) + _offset));//æ­¤å‡½æ•°å¹¶ä¸åˆ›å»ºæ–°å¯¹è±¡,åªæ˜¯è¿”å›å…¶å®ƒè½¬æ¢åç±»å‹çš„å¼•ç”¨
+            return (Ty&)(*((Ty*)((_base_byte*)&data + _base_offset) + _offset));//´Ëº¯Êı²¢²»´´½¨ĞÂ¶ÔÏó,Ö»ÊÇ·µ»ØÆäËü×ª»»ºóÀàĞÍµÄÒıÓÃ
         };
         inline auto& operator[](const base::ull idx){
-            return this->refbytes<_base_byte>(idx);//ä¸åˆ›å»ºå¯¹è±¡,åªè¿”å›å­—èŠ‚çš„å¼•ç”¨
+            return this->refbytes<_base_byte>(idx);//²»´´½¨¶ÔÏó,Ö»·µ»Ø×Ö½ÚµÄÒıÓÃ
         };
         template<base::ull _RangeL,base::ull _RangeR>inline ByteN<_RangeR - _RangeL>& range(){
             static_assert(_RangeR <= length,"Out of range !");
-            return this->refbytes<ByteN<_RangeR - _RangeL>>(0,_RangeL);//ä¸åˆ›å»ºå¯¹è±¡,åªè¿”å›å­—èŠ‚èŒƒå›´çš„å¼•ç”¨
+            return this->refbytes<ByteN<_RangeR - _RangeL>>(0,_RangeL);//²»´´½¨¶ÔÏó,Ö»·µ»Ø×Ö½Ú·¶Î§µÄÒıÓÃ
         };
         inline ByteN<0,void*>& at(const base::ull _offset){
         #ifdef KURZER_ENABLE_EXCEPTIONS
             if (_offset >= length)throw std::runtime_error("Out of range !");
         #endif
-            return  this->refbytes<ByteN<0,void*>>(0,_offset);//ä¸åˆ›å»ºå¯¹è±¡,åªè¿”å›å­—èŠ‚èŒƒå›´çš„å¼•ç”¨
+            return  this->refbytes<ByteN<0,void*>>(0,_offset);//²»´´½¨¶ÔÏó,Ö»·µ»Ø×Ö½Ú·¶Î§µÄÒıÓÃ
         };
-        inline void print_range_hex(const base::ull _range_l,base::ull _range_r){//å°ç«¯åºè¾“å‡º
+        inline void print_range_hex(const base::ull _range_l,base::ull _range_r){//Ğ¡¶ËĞòÊä³ö
             std::ios_base::fmtflags original_flags = std::cout.flags();
             std::cout << std::hex;
             _base_byte* _Ptr = (_base_byte*)(&data);
