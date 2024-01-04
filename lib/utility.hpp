@@ -29,20 +29,18 @@ namespace KUR{
         if (c >= '0' && c <= '9')return c - '0';
         if ((c >= 'a' && c <= 'f'))return c - 'a' + 10;
         if ((c >= 'A' && c <= 'F'))return c - 'A' + 10;
-    #ifdef KURZER_ENABLE_EXCEPTIONS//debug模式自动开启
-        throw std::runtime_error("Error Value !");
-    #endif
+        KUR_DEBUG_ASSERT(throw std::runtime_error("Error Value !"););
         return 0;
     };
     template<typename T>inline void _copy_to(const T& _Val,const base::ull N,byte1* _Data){//用于覆盖内存,注意:不进行越界检查!
-    #ifndef KURZER_ENABLE_EXCEPTIONS
-        std::memcpy(_Data,&_Val,base::minimum(N,sizeof(T)));
-    #else
-        base::ull _Len = base::minimum(N,sizeof(T));
+        KUR_DEBUG_ASSERT(
+            base::ull _Len = base::minimum(N,sizeof(T));
         base::ull _Idx = -1;
-        byte1* _Ptr = (byte1*)(&_Val);
+        byte1 * _Ptr = (byte1*)(&_Val);
         while ((++_Idx) < _Len)_Data[_Idx] = _Ptr[_Idx];
-    #endif // NDEBUG
+        )else{
+            std::memcpy(_Data,&_Val,base::minimum(N,sizeof(T)));
+        };
     };
     //此类大多时候并不用于储存,而是用于类型转换操作数据;
     //注意:使用时确保了解内存布局,否则不建议使用.
@@ -87,9 +85,7 @@ namespace KUR{
         };
         //_offset是Ty类型的偏移量(sizeof(Ty)),_base_offset是字节偏移量(size=1)
         template<typename Ty = _base_byte>inline Ty& refbytes(const base::ull _offset,const base::ull _base_offset = 0){
-        #ifdef KURZER_ENABLE_EXCEPTIONS
-            if (_offset * sizeof(Ty) + _base_offset >= length)throw std::runtime_error("Out of range !");
-        #endif
+            KUR_DEBUG_ASSERT(if (_offset * sizeof(Ty) + _base_offset >= length)throw std::runtime_error("Out of range !"););
             return (Ty&)(*((Ty*)((_base_byte*)&data + _base_offset) + _offset));//此函数并不创建新对象,只是返回其它转换后类型的引用
         };
         inline auto& operator[](const base::ull idx){
@@ -100,9 +96,7 @@ namespace KUR{
             return this->refbytes<ByteN<_RangeR - _RangeL>>(0,_RangeL);//不创建对象,只返回字节范围的引用
         };
         inline ByteN<0,void*>& at(const base::ull _offset){
-        #ifdef KURZER_ENABLE_EXCEPTIONS
-            if (_offset >= length)throw std::runtime_error("Out of range !");
-        #endif
+            KUR_DEBUG_ASSERT(if (_offset >= length)throw std::runtime_error("Out of range !"););
             return  this->refbytes<ByteN<0,void*>>(0,_offset);//不创建对象,只返回字节范围的引用
         };
         inline void print_range_hex(const base::ull _range_l,base::ull _range_r){//小端序输出

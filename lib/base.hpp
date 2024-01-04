@@ -8,8 +8,9 @@
 *  KURZER_ENABLE_EXCEPTIONS
 */
 #ifdef NDEBUG //release
+#define KURZER_ENABLE_EXCEPTIONS 0
 #else //debug
-#define KURZER_ENABLE_EXCEPTIONS
+#define KURZER_ENABLE_EXCEPTIONS 1
 #endif // NDEBUG
 #ifdef KURZER_ENABLE_EXCEPTIONS
 #include<stdexcept>
@@ -20,7 +21,7 @@
 #ifdef __KUR_ENABLE_IOSTREAM
 #define __KUR_IOSTREAM
 #endif // ENABLE_IOSTREAM
-
+#define KUR_DEBUG_ASSERT(CODE) if(KURZER_ENABLE_EXCEPTIONS){CODE}
 namespace KUR{
     namespace base{
         typedef unsigned long long ull;
@@ -327,9 +328,7 @@ namespace KUR{
                 if (_Mem)delete[] _Tmp;
                 return;
             };
-        #ifdef KURZER_ENABLE_EXCEPTIONS
-            throw std::bad_alloc();
-        #endif // KURZER_ENABLE_EXCEPTIONS
+            KUR_DEBUG_ASSERT(throw std::bad_alloc(););
         };
 
         template<typename Type,ull init_size>class Array;
@@ -386,9 +385,7 @@ namespace KUR{
                 Type* temp = _chunk;
                 ull _esize = (_size << 1);
                 this->_chunk = Malloc(_esize);
-            #ifdef KURZER_ENABLE_EXCEPTIONS
-                if (!this->_chunk)throw std::runtime_error("bad alloc !");
-            #endif
+                KUR_DEBUG_ASSERT(if (!this->_chunk)throw std::runtime_error("bad alloc !"););
                 for (ull i = 0; i < _size; ++i)*(this->_chunk + i) = *(temp + i);
                 this->_size = _esize;
                 delete[] temp;
@@ -449,27 +446,27 @@ namespace KUR{
                 return new Type[nsize];
             };
             inline Type& operator[](ull index){
+                KUR_DEBUG_ASSERT(if (index >= _pos || index < 0)throw std::runtime_error("Array<T> out of range !"););
                 return *(this->_chunk + index);
             };
             inline const Type& operator[](ull index) const{
+                KUR_DEBUG_ASSERT(if (index >= _pos || index < 0)throw std::runtime_error("Array<T> out of range !"););
                 return *(this->_chunk + index);
             };
             inline Type* operator()(ull index){
-            #ifdef KURZER_ENABLE_EXCEPTIONS
-                if (index >= this->_pos){
-                    throw std::runtime_error("Array<T> out of range !");
-                    return nullptr;
-                };
-            #endif // KURZER_ENABLE_EXCEPTIONS
+                KUR_DEBUG_ASSERT(
+                    if (index >= this->_pos){
+                        throw std::runtime_error("Array<T> out of range !");
+                        return nullptr;
+                    };);
                 return this->_chunk + index;
             };
             inline const Type* operator()(ull index) const{
-            #ifdef KURZER_ENABLE_EXCEPTIONS
-                if (index >= this->_pos){
-                    throw std::runtime_error("Array<T> out of range !");
-                    return nullptr;
-                };
-            #endif // KURZER_ENABLE_EXCEPTIONS
+                KUR_DEBUG_ASSERT(
+                    if (index >= this->_pos){
+                        throw std::runtime_error("Array<T> out of range !");
+                        return nullptr;
+                    };);
                 return this->_chunk + index;
             };
             template<typename T> inline void push(const T value){
@@ -500,25 +497,25 @@ namespace KUR{
                 this->_pos = 0;
             };
             inline Type& at(base::ull _Pos){
+                KUR_DEBUG_ASSERT(if (_Pos >= _pos || _Pos < 0)throw std::runtime_error("Array<T> out of range !"););
                 return *(this->_chunk + _Pos);
             };
             inline Type* begin(){ return _chunk; };
             inline Type* end(){ return this->_chunk + _pos; };
             inline Type* last(){ return this->_chunk + _pos - 1; };
-            inline Type* pop(){
+            [[nodiscard]] inline Type* pop(){
                 if (!_pos)return nullptr;
                 return this->_chunk + --_pos;
             };
             inline void pop_back(){
+                KUR_DEBUG_ASSERT(if (!_pos)throw std::runtime_error("Array<T> out of range !"););
                 --_pos;
             };
             ~Array(){
                 if (_chunk && _allow_del)delete[] _chunk;
             };
             inline Type* erase(ull index){
-            #ifdef KURZER_ENABLE_EXCEPTIONS
-                if (index >= _pos)throw std::runtime_error("Array<T> out of range !");
-            #endif // KURZER_ENABLE_EXCEPTIONS
+                KUR_DEBUG_ASSERT(if (index >= _pos || index < 0)throw std::runtime_error("Array<T> out of range !"););
                 auto _pos0 = _pos - 1;
                 for (ull i = index; i < _pos0; ++i)_chunk[i] = _chunk[i + 1];
                 --_pos;
@@ -686,11 +683,9 @@ namespace KUR{
             };
             inline T* pop(){
                 if (this->is_empty()){
-                #ifdef KURZER_ENABLE_EXCEPTIONS
-                    throw std::runtime_error("Queue is empty!");
-                #else
-                    return nullptr;
-                #endif
+                    KUR_DEBUG_ASSERT(throw std::runtime_error("Queue is empty!");)else{
+                        return nullptr;
+                    };
                 };
                 T* ret = _data(_head);
                 _head = (_head + 1) % capacity();
@@ -761,9 +756,7 @@ namespace KUR{
                     if (!_size){
                         this->init(base::forward<Args>(arg)...);
                     } else{
-                    #ifdef KURZER_ENABLE_EXCEPTIONS
-                        throw std::runtime_error("Parent node cannot be null");
-                    #endif
+                        KUR_DEBUG_ASSERT(throw std::runtime_error("Parent node cannot be null"););
                         return;
                     };
                 };
@@ -776,17 +769,13 @@ namespace KUR{
                         ++_size;
                         return newNode;
                     } else{
-                    #ifdef KURZER_ENABLE_EXCEPTIONS
-                        throw std::runtime_error("Could not alloc memory!");
-                    #endif
+                        KUR_DEBUG_ASSERT(throw std::runtime_error("Could not alloc memory !"););
                     };
                 } else{
                     if (!_size){
                         this->init(base::forward<Args>(arg)...);
                     } else{
-                    #ifdef KURZER_ENABLE_EXCEPTIONS
-                        throw std::runtime_error("Parent node cannot be null");
-                    #endif
+                        KUR_DEBUG_ASSERT(throw std::runtime_error("Parent node cannot be null"););
                     };
                 };
                 return nullptr;
