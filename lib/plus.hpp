@@ -15,7 +15,6 @@
 #include "base.hpp"
 namespace KUR{
     namespace plus{
-        //将_tVal的低位设置到_sVal指定的起始位begbits上,覆盖长度为 len 的位段.要求T为任意整型,超出范围或类型错误抛出异常.
         template<typename T>inline void setbits(T& _sVal,size_t begbits,size_t len,T _tVal){
             static_assert(std::is_integral<T>::value,"Integral type required.");
             KUR_DEBUG_ASSERT(if (len <= 0 || begbits < 0 || begbits >= (sizeof(T) << 3) || len >((sizeof(T) << 3) - begbits))throw std::out_of_range("Bit range is out of bounds"););
@@ -23,7 +22,6 @@ namespace KUR{
             _sVal &= ~mask;
             _sVal |= (_tVal << begbits) & mask;
         };
-        //从_sVal中提取从第begbits位开始,长度为len的位序列并返回.要求T为任意整型,超出范围或类型错误抛出异常.
         template<typename T>inline T getbits(T _sVal,size_t begbits,size_t len){
             static_assert(std::is_integral<T>::value,"Integral type required.");
             KUR_DEBUG_ASSERT(if (len <= 0 || begbits < 0 || begbits >= (sizeof(T) << 3) || len >((sizeof(T) << 3) - begbits))throw std::out_of_range("Bit range is out of bounds");)
@@ -863,11 +861,11 @@ namespace KUR{
         class NumberType{
         public:
             __ntype_dec val = 0;
-            bool is_int = 0;
+            bool is_int = false;
             bool no_flag = false;
+            TokenType type;
             std::string valname;
-            TokenType type = TokenType::NOPS;
-            NumberType(bool flag = 0):no_flag(flag){};
+            NumberType(bool flag = 0):no_flag(flag),type(KUR::plus::TokenType::NOPS){};
             NumberType(__ntype_dec _val,bool _is_int,TokenType _type):val(_val),is_int(_is_int),type(_type){};
             NumberType(__ntype_dec _val,bool _is_int,TokenType _type,const std::string& _valname):val(_val),is_int(_is_int),type(_type),valname(_valname){};
             inline bool is_val(){
@@ -987,6 +985,8 @@ namespace KUR{
                         return (Ret)(v.val /= R.val);
                     case KUR::plus::TokenType::ModuloAssign:
                         return (Ret)(v.val = (__ntype_dec)((__ntype_int)v.val % (__ntype_int)R.val));
+                    default:
+                        break;
                 };
                 return (Ret)0;
             };

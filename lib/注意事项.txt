@@ -1,2 +1,1 @@
-gcc无法使用包含dev.hpp的all.hpp,dev.hpp.这两个只能用于msvc.
 如果需要base.hpp里的容器支持std::string和iostream,请#include"lib/utility.hpp".

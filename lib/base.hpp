@@ -388,11 +388,11 @@ namespace KUR{
                 this->_size = _esize;
                 delete[] temp;
             };
-            Array(ull initSize = 0){//Array<T>(0) ->not alloc memory
+            Array(ull initSize = 0)noexcept{//Array<T>(0) ->not alloc memory
                 if (initSize)create(initSize);
                 this->_pos = initSize;
             };
-            inline void create(ull initSize = 0x10){
+            inline void create(ull initSize = 0x10)noexcept{
                 if (initSize < 0x2)initSize = 0x2;
                 this->_size = initSize;
                 this->_chunk = Malloc(initSize);
@@ -406,7 +406,7 @@ namespace KUR{
                 other._size = 0;
                 other._pos = 0;
             };
-            Array(const Array& other): _size(other._size),_pos(other._pos){
+            Array(const Array& other)noexcept: _size(other._size),_pos(other._pos){
                 _chunk = new Type[_size];
                 for (ull i = 0; i < _pos; ++i)_chunk[i] = other._chunk[i];
             };
@@ -429,7 +429,7 @@ namespace KUR{
                 };
                 return *this;
             };
-            Array& operator=(const Array& other){
+            Array& operator=(const Array& other)noexcept{
                 if (this != &other){
                     if (_chunk)delete[] _chunk;
                     _size = other._size;
@@ -439,7 +439,7 @@ namespace KUR{
                 };
                 return *this;
             };
-            inline Type* Malloc(ull nsize){
+            [[nodiscard]] inline Type* Malloc(ull nsize)noexcept{
                 if (!nsize)return nullptr;
                 return new Type[nsize];
             };
@@ -477,13 +477,13 @@ namespace KUR{
                 *(this->_chunk + _pos) = value;
                 ++_pos;
             };
-            inline bool is_full(){
+            inline bool is_full()noexcept{
                 return this->_pos + 1 == this->_size;
             };
-            inline Type* data(){
+            inline Type* data()noexcept{
                 return this->_chunk;
             };
-            inline void Free(){
+            inline void Free()noexcept{
                 if (_chunk){
                     delete[] _chunk;
                     _chunk = nullptr;
@@ -491,17 +491,17 @@ namespace KUR{
                 _size = 0;
                 _pos = 0;
             };
-            inline void clear(){
+            inline void clear()noexcept{
                 this->_pos = 0;
             };
             inline Type& at(base::ull _Pos){
                 KUR_DEBUG_ASSERT(if (_Pos >= _pos || _Pos < 0)throw std::runtime_error("Array<T> out of range !"););
                 return *(this->_chunk + _Pos);
             };
-            inline Type* begin(){ return _chunk; };
-            inline Type* end(){ return this->_chunk + _pos; };
-            inline Type* last(){ return this->_chunk + _pos - 1; };
-            [[nodiscard]] inline Type* pop(){
+            inline Type* begin()noexcept{ return _chunk; };
+            inline Type* end()noexcept{ return this->_chunk + _pos; };
+            inline Type* last()noexcept{ return this->_chunk + _pos - 1; };
+            [[nodiscard]] inline Type* pop()noexcept{
                 if (!_pos)return nullptr;
                 return this->_chunk + --_pos;
             };
@@ -513,25 +513,25 @@ namespace KUR{
                 if (_chunk && _allow_del)delete[] _chunk;
             };
             inline Type* erase(ull index){
-                KUR_DEBUG_ASSERT(if (index >= _pos || index < 0)throw std::runtime_error("Array<T> out of range !"););
+                KUR_DEBUG_ASSERT(if (index >= _pos)throw std::runtime_error("Array<T> out of range !"););
                 auto _pos0 = _pos - 1;
                 for (ull i = index; i < _pos0; ++i)_chunk[i] = _chunk[i + 1];
                 --_pos;
                 return _chunk + index;
             };
-            inline ull size()const{ return this->_pos; };
-            inline ull capacity(){ return this->_size; };
-            inline Type* GetData(){ return this->_chunk; };
-            inline void init(Type _Init_Val,ull _Size = 0){
+            inline ull size()const noexcept{ return this->_pos; };
+            inline ull capacity()noexcept{ return this->_size; };
+            inline Type* GetData()noexcept{ return this->_chunk; };
+            inline void init(Type _Init_Val,ull _Size = 0)noexcept{
                 ull _Len = this->Length();
                 if (_Size)_Len = _Size;
                 for (ull i = 0; i < _Len; ++i)*(this->_chunk + i) = _Init_Val;
             };
-            inline Type* find(const Type& value){
+            inline Type* find(const Type& value)noexcept{
                 for (ull i = 0; i < _pos; ++i)if (_chunk[i] == value)return &_chunk[i];
                 return end();
             };
-            inline ull find_idx(const Type& value){
+            inline ull find_idx(const Type& value)noexcept{
                 Type* _frsl = this->find(value);
                 if (_frsl == this->end())return -1;
                 return _frsl - this->begin();

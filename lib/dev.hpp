@@ -29,7 +29,7 @@
 #include <iostream>
 #include <fstream>
 #include <stdio.h>
-#include <atlstr.h>
+//#include <atlstr.h>
 #include <string>
 #include <cmath>
 #include <new>
@@ -46,7 +46,7 @@
 #include <Windows.h>
 #include <tchar.h>
 #include <functional>
-#include <strsafe.h>
+//#include <strsafe.h>
 #include <utility>
 #include <memory>
 #include <list>
@@ -99,15 +99,19 @@
 #include <Bitset>
 #include <assert.h>
 #include <lm.h>
+#ifdef _MSC_VER
 #pragma comment(lib, "netapi32.lib")
+#endif 
 #ifdef ENABLE_KEY
 #include <conio.h>
 #endif
+#ifdef _MSC_VER
 #pragma warning(disable : 28183)
 #pragma warning(disable : 26451)
 #pragma warning(disable : 6387)
 #pragma warning(disable : 4244)
 #pragma warning(disable : 6011) // NULL指针引用
+#endif
 #define sptr_(name, type, _Pfn) shared_ptr<type> name(_Pfn)
 #define sptrn(name, type, value) sptr_(name, type, new type(value))
 #define _ptrtype(_Pfn) (typeid(*_Pfn).name())
@@ -148,12 +152,13 @@ namespace KUR{
             double fScreenHeight = ::GetSystemMetrics(SM_CYSCREEN) - 1;
             double fx = x * (65535.0f / fScreenWidth);
             double fy = y * (65535.0f / fScreenHeight);
-            mouse_event(MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE,fx,fy,0,0);
+            mouse_event(MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE,(DWORD)fx,(DWORD)fy,0,0);
         };
         tm* TIME(){
             time_t now = time(0);
             tm* _tm = new tm;
-            errno_t gmtm = gmtime_s(_tm,&now);
+            //errno_t gmtm = gmtime_s(_tm,&now);
+            gmtime_s(_tm,&now);
             return _tm;
         };
         wchar_t* ToWchar_N(const char* c){
@@ -325,7 +330,7 @@ namespace KUR{
                 return 0;
             };
         };
-        static short int GetBits(){ return sizeof(int*) * 8; };
+        [[maybe_unused]] static auto GetBits(){ return sizeof(int*) * 8; };
         template <typename T>
         void PrintAll(const std::vector<T>& vec,const std::string&& _firdisplay = ""){
             for_each(vec.begin(),vec.end(),[&,_firdisplay](const T& t){ std::cout << _firdisplay << t << std::endl; });
@@ -607,11 +612,7 @@ namespace KUR{
                 os << str.data;
                 return os;
             };
-            friend std::ostream& operator>>(Kstring& str,std::ostream& os){ os << str; };
-            static void* operator new(std::size_t t){
-                Kstring* p = ::new Kstring();
-                return p;
-            };
+            friend std::ostream& operator>>(Kstring& str,std::ostream& os){ os << str; return os; };
             char* Data(){ return data; };
             size_t to_find(const Kstring& str){
                 std::string st = (*this).str();
@@ -785,7 +786,7 @@ namespace KUR{
                         p_revise = (p_data + n);
                     } else if (n > 0 && n > top){
                         p_revise = (p_data + top);
-                    } else if (n < 0 && -n > top || n == 0 || n < 0 && -n == top){
+                    } else if (n < 0 || -n > top || n == 0 || n < 0 || -n == top){
                         p_revise = p_data;
                     };
                 };
@@ -985,7 +986,11 @@ namespace KUR{
             Node<T>* end(){ return this->get(this->_size - 1); };
             Node<T>* get(size_t pos){
                 Node<T>* _pos = this->head;
+            #ifdef _MSC_VER
                 pos = min(pos,this->_size);
+            #else
+                pos = std::min(pos,this->_size);
+            #endif // _MSC_VER
                 for (size_t i = 0; i < pos; i++){
                     _pos = _pos->next;
                 };
@@ -1027,7 +1032,12 @@ namespace KUR{
                 if (_end == -1){
                     _end = this->_size;
                 } else{
+                #ifdef _MSC_VER
                     _end = min(_end,this->_size);
+                #else
+                    _end = std::min(_end,this->_size);
+                #endif
+
                 };
                 if (pos == 0){
                     Node<T>* pos1 = this->head;
@@ -1138,7 +1148,7 @@ namespace KUR{
             };
             // 巨慢实现,不要用
             static std::string* encryption(const std::string key,const std::wstring& wstr){
-                const int max = 1024;
+                //const int max = 1024;
                 const char* p = key.c_str();
                 const int p_len = (int)key.length();
                 const unsigned int MAX_ui = 4294967295;
@@ -1175,7 +1185,7 @@ namespace KUR{
             // 巨慢实现,不要用
             static std::wstring* decrypt(const std::string key,const std::string& lines){
                 using namespace std;
-                const int max = 1024;
+                //const int max = 1024;
                 const char* p = key.c_str();
                 const int p_len = (int)key.length();
                 const unsigned int MAX_ui = 4294967295;
@@ -1394,13 +1404,13 @@ namespace KUR{
         class gdtime{ // 获取精确时间
         public:
             LARGE_INTEGER t1;
-            LARGE_INTEGER t2;
             LARGE_INTEGER tc;
             gdtime(){
                 QueryPerformanceFrequency(&tc);
                 QueryPerformanceCounter(&t1);
             };
             double get(){
+                LARGE_INTEGER t2;
                 QueryPerformanceCounter(&t2);
                 return (double)(t2.QuadPart - t1.QuadPart) / (double)tc.QuadPart;
             };
@@ -1469,9 +1479,11 @@ namespace KUR{
                 SetConsoleTitle(LPCSTR(ch));
             };
         #else
+        #ifdef _MSC_VER
             void set_title(const wchar_t* ch){
                 SetConsoleTitle(LPCWSTR(ch));
             };
+        #endif
         #endif
         #define K_COLOR                   \
     using namespace ConsoleColor; \
@@ -1816,6 +1828,7 @@ namespace KUR{
     #ifndef UNICODE
     #define UNICODE
     #endif
+    #ifdef _MSC_VER
         std::wstring string2wstring(std::string str){
             std::wstring result;
             int len = MultiByteToWideChar(CP_ACP,0,str.c_str(),(int)str.size(),NULL,0);
@@ -1826,6 +1839,7 @@ namespace KUR{
             delete[] buffer;
             return result;
         };
+    #endif
         std::string wstring2string(std::wstring wstr){
             std::string result;
             int len = WideCharToMultiByte(CP_ACP,0,wstr.c_str(),(int)wstr.size(),NULL,0,NULL,NULL);
@@ -1840,6 +1854,7 @@ namespace KUR{
 
         };
         namespace sys{
+        #ifdef _MSC_VER
             bool GetPrivilege(void){ CreateEvent(NULL,FALSE,FALSE,_T("{29544E05-024F-4BC1-A272-452DBC8E17A4}")); if (ERROR_SUCCESS != GetLastError()){ return false; } else{ TCHAR strPath[MAX_PATH] = {0}; HMODULE hModule = NULL; GetModuleFileName(hModule,strPath,MAX_PATH); SHELLEXECUTEINFO sei = {sizeof(SHELLEXECUTEINFO)}; sei.lpVerb = TEXT("runas"); sei.lpFile = strPath; sei.nShow = SW_SHOWNORMAL; if (!ShellExecuteEx(&sei)){ DWORD dwStatus = GetLastError(); if (dwStatus == ERROR_CANCELLED){ return false; } else if (dwStatus == ERROR_FILE_NOT_FOUND){ return false; }; }; }; Sleep(100); return true; };
             //******************************
             // ModifyPassword(NULL);直接上锁
@@ -1855,7 +1870,6 @@ namespace KUR{
                 LB2022::getCmdResult(std::string(cmd1));
                 // system();//执行cmd命令
             }
-
             /************************************
             *MondifyPassword
             *功能   修改密码 ，需要输入旧密码验证才能修改
@@ -1867,7 +1881,7 @@ namespace KUR{
             *************************************/
 
             void MondifyPassword(LPWSTR szServerName,LPWSTR userName,LPWSTR oldPassword,LPWSTR newpassword){
-                DWORD dwError = 0;
+                //DWORD dwError = 0;
                 DWORD dwLevel = 5;
                 NET_API_STATUS nStatus;
                 if (dwLevel != 5){
@@ -1881,9 +1895,10 @@ namespace KUR{
                     fwprintf(stderr,L"User password has been changed successfully\n");
                 } else{
 
-                    fprintf(stderr,"A system error has occurred: %d\n",nStatus);
+                    fprintf(stderr,"A system error has occurred: %ld\n",nStatus);
                 }
             }
+        #endif 
         };
         namespace Keyboard{
             void PasteInfo(){
@@ -1903,6 +1918,7 @@ namespace KUR{
                 GlobalUnlock(hHandle);
                 CloseClipboard();
             };
+        #ifdef _MSC_VER
             void SetClipBoardW(const std::wstring& ws){
                 if (!OpenClipboard(NULL) || !EmptyClipboard()){
                     return;
@@ -1915,7 +1931,7 @@ namespace KUR{
                     return;
                 }
                 LPWSTR lpStr = (LPWSTR)GlobalLock(hMen);
-                wmemcpy(lpStr,strText,(size_t)((wcslen(strText)) * sizeof(TCHAR)));
+                wmemcpy(lpStr,strText,wcslen(strText));
                 lpStr[wcslen(strText)] = (TCHAR)0;
                 GlobalUnlock(hMen);
                 SetClipboardData(CF_UNICODETEXT,hMen);
@@ -1946,7 +1962,7 @@ namespace KUR{
                 typedef int (*PMF)(char,int,void*);
                 PMF ___pfun;
                 void* element;
-                static class Hooks{
+                class Hooks{
                 public:
                     static int Call(char c,int i){
                         return ___pfun(c,i,element);
@@ -2092,6 +2108,7 @@ namespace KUR{
             void Default(){
                 LB2023::Keyboard::Hook::Hooks::Change(LB2023::Keyboard::Hook::___pfun,LB2023::Keyboard::Hook::element);
             };
+        #endif
         };
     };
 };
