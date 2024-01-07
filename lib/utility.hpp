@@ -114,7 +114,7 @@ namespace KUR{
             base::R_Iterator<_base_byte> _begin = this->begin();
             base::R_Iterator<_base_byte> _end = this->begin();
             _begin._Pos -= _first;
-            _end._Pos -= _last;
+            _end._Pos -= (_last == base::npos) ? length : _last;
             while (_begin != _end){
                 **_begin = _Val;
                 _begin.operator++();
