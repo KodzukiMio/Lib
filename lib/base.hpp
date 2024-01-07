@@ -369,6 +369,44 @@ namespace KUR{
     #define _KUR_TEMPLATE_TYPE_IS(Type,Is_Ty)template <typename Type,typename base::enable_if_t<base::is_same<Type,Is_Ty>::value>* = nullptr>
     //_KUR_TEMPLATE_T_IS(T2)
     #define _KUR_TEMPLATE_T_IS(Is_Ty) _KUR_TEMPLATE_TYPE_IS(T,Is_Ty) 
+        template<typename T>class R_Iterator{//反向迭代器
+        public:
+            T* _begin = nullptr;
+            T* _end = nullptr;
+            T* _Pos = nullptr;
+            R_Iterator(){};
+            R_Iterator(const R_Iterator& other): _begin(other._begin),_end(other._end),_Pos(other._Pos){}
+            R_Iterator(T* begin_,T* end_):_begin(begin_),_end(end_){
+                this->_Pos = this->_end - 1;
+            };
+            inline T* begin(){
+                return this->_end - 1;
+            };
+            inline T* end(){
+                return this->_begin - 1;
+            };
+            inline R_Iterator& operator++(){
+                KUR_DEBUG_ASSERT(if (this->_Pos < this->_begin){ throw std::runtime_error("R_Iterator bounds checking error !"); };);
+                --this->_Pos;
+                return *this;
+            };
+            inline T* operator*(){
+                return this->_Pos;
+            };
+            inline bool operator!=(const R_Iterator& rv){
+                return this->_Pos != rv._Pos;
+            };
+            inline bool operator==(const R_Iterator& rv){
+                return this->_Pos == rv._Pos;
+            };
+            inline R_Iterator& operator=(const R_Iterator& rv){
+                if (this == &rv)return *this;
+                this->_begin = rv._begin;
+                this->_end = rv._end;
+                this->_Pos = rv._Pos;
+                return *this;
+            };
+        };
         template<typename Type,ull init_size = 0x10>class Array{
         public:
             bool _allow_del = true;

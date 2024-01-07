@@ -3,6 +3,7 @@
 #include <string> 
 #include <cstdint>
 #include <cstring>
+#include <iomanip>
 #define __KUR_ENABLE_IOSTREAM//用于开启base.hpp对stl的支持
 #define __KUR_ENABLE_STRING//同上
 #include "base.hpp"
@@ -32,6 +33,10 @@ namespace KUR{
         KUR_DEBUG_ASSERT(throw std::runtime_error("Error Value !"););
         return 0;
     };
+    inline char byte1_to_hexc(byte1 ch){
+        if (ch < 10)return ch;
+        return ch - 10 + 'A';
+    };
     template<typename T>inline void _copy_to(const T& _Val,const base::ull N,byte1* _Data)noexcept{//用于覆盖内存,注意:不进行越界检查!
         KUR_DEBUG_ASSERT(
             base::ull _Len = base::minimum(N,sizeof(T));
@@ -43,7 +48,6 @@ namespace KUR{
         };
     };
     //此类大多时候并不用于储存,而是用于类型转换操作数据;
-    //注意:使用时确保了解内存布局,否则不建议使用.
     template<base::ull N,typename Ty = void>class ByteN{//静态范围
     private:
         byte1 _data[N] = {0};//储存和范围表示
@@ -57,10 +61,9 @@ namespace KUR{
         };
     };
     //ByteN<N>上范围操作特化,用于绕过模板限制,参数并没有实际意义.
-    //建议不要直接使用这个特化版本,除非确实明白自己在做什么.
     template<>class ByteN<0,void*>{
     private:
-        byte1 _data;//用于获取ByteArray原始offset地址,并不直接使用.
+        byte1 _data;//用于获取ByteContainer原始offset地址,并不直接使用.
     public:
         inline byte1* get_bytes()noexcept{
             return &_data;
@@ -70,18 +73,20 @@ namespace KUR{
         };
     };
     //用于对类型T进行字节级别的操作;<T>不建议使用非POD类型.
-    //类实例化大小与T一致(sizeof(T)==sizeof(ByteArray<T>))=>true.
-    template<typename T>class ByteArray{
+    //类实例化大小与T一致(sizeof(T)==sizeof(ByteContainer<T>))=>true.
+    template<typename T>class ByteContainer{
     public:
         using _type = T;
         using _base_byte = base::conditional_t<base::is_unsigned_v<T>,ubyte1,byte1>;//选择符号.
         constexpr static const base::ull length = sizeof(T);
         T data;
-        inline _base_byte* begin()noexcept{
-            return static_cast<_base_byte*>(&data);
+        ByteContainer(const T& _Val):data(_Val){};
+        ByteContainer(){};
+        inline _base_byte* _begin()noexcept{
+            return (_base_byte*)(&data);
         };
-        inline _base_byte* end()noexcept{
-            return static_cast<_base_byte*>(&data + 1);
+        inline _base_byte* _end()noexcept{
+            return (_base_byte*)(&data + 1);
         };
         //_offset是Ty类型的偏移量(sizeof(Ty)),_base_offset是字节偏移量(size=1)
         template<typename Ty = _base_byte>inline Ty& refbytes(const base::ull _offset,const base::ull _base_offset = 0){
@@ -91,7 +96,7 @@ namespace KUR{
         inline auto& operator[](const base::ull idx){
             return this->refbytes<_base_byte>(idx);//不创建对象,只返回字节的引用
         };
-        template<base::ull _RangeL,base::ull _RangeR>inline ByteN<_RangeR - _RangeL>& range(){
+        template<base::ull _RangeL,base::ull _RangeR>inline ByteN<_RangeR - _RangeL>& range(){//[_RangeL,_RangeR)
             static_assert(_RangeR <= length,"Out of range !");
             return this->refbytes<ByteN<_RangeR - _RangeL>>(0,_RangeL);//不创建对象,只返回字节范围的引用
         };
@@ -99,12 +104,51 @@ namespace KUR{
             KUR_DEBUG_ASSERT(if (_offset >= length)throw std::runtime_error("Out of range !"););
             return  this->refbytes<ByteN<0,void*>>(0,_offset);//不创建对象,只返回字节范围的引用
         };
-        inline void print_range_hex(const base::ull _range_l,base::ull _range_r)noexcept{//小端序输出
+        inline base::R_Iterator<_base_byte> get_itr(){
+            return base::R_Iterator<_base_byte>(this->_begin(),this->_end());
+        };
+        inline base::R_Iterator<_base_byte> begin()noexcept{
+            return get_itr();
+        };
+        inline base::R_Iterator<_base_byte> end()noexcept{
+            base::R_Iterator<_base_byte> itr = get_itr();
+            itr._Pos = itr.end();
+            return itr;
+        };
+        void print_hex()noexcept{//小端序输出
             std::ios_base::fmtflags original_flags = std::cout.flags();
             std::cout << std::hex;
-            _base_byte* _Ptr = (_base_byte*)(&data);
-            while (_range_l < _range_r)std::cout << static_cast<byte4>((ubyte1)_Ptr[--_range_r]);
+            for (auto i : *this)std::cout << std::setw(2) << std::setfill('0') << static_cast<int>(static_cast<unsigned char>(*i));
             std::cout.flags(original_flags);
         };
+        inline void set(const byte1 _Val,const base::ull _first = 0,const base::ull _last = base::npos){
+            base::R_Iterator<_base_byte> _begin = this->begin();
+            base::R_Iterator<_base_byte> _end = this->begin();
+            _begin._Pos -= _first;
+            _end._Pos -= _last;
+            while (_begin != _end){
+                **_begin = _Val;
+                _begin.operator++();
+            };
+        };
     };
+    /*
+    #include "lib/utility.hpp"
+    struct Data{
+    int q;
+    long c;
+    };
+    int main(){
+    kur::ByteContainer<kur::ByteN<sizeof(Data)>>b;
+    b.set(0xaf,0,sizeof(Data));
+    b.range<1,3>() = 0xabcd;
+    kur::byte2 p = 3;
+    b.at(p) = (kur::byte1)(0xee);
+    b.print_hex();
+    Data data = b.refbytes<Data>(0,0);
+    std::cout << ':' << std::hex << data.c << ':' << data.q;
+    //afafafafeeabcdaf:afafafaf:eeabcdaf
+    return 0;
+    };
+    */
 };

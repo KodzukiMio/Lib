@@ -47,6 +47,7 @@ namespace KUR{
         private:
             size_t id_idx = 1;
         public:
+            bool no_found = false;
             std::unordered_map<Ty,std::unique_ptr<Object>> storageMap;
             std::unordered_map<std::string,size_t> types_id;
             std::unordered_map<size_t,std::string> id_types;
@@ -61,8 +62,9 @@ namespace KUR{
                 storageMap[tag] = std::make_unique<Holder<T>>(obj,_id);
             };
             inline auto find(const Ty& tag){
+                no_found = false;
                 auto it = storageMap.find(tag);
-                if (it == storageMap.end()) throw std::runtime_error("Object not found");
+                if (it == storageMap.end())no_found = true;
                 return it;
             };
             template<typename T>inline T& get(const Ty& tag){
@@ -827,7 +829,7 @@ namespace KUR{
             return handle_token_msg(tokenize(expr));
         };
         template<typename NumType,typename Ty = std::string>inline NumType get_var_value(std::string& name,Storage<Ty>& store){
-            return static_cast<NumType>(store.get(name));
+            return store.get<NumType>(name);
         };
         std::vector<Token> convert_token_rpn(const std::vector<Token>& tokens){
             std::vector<Token>opr;
@@ -1036,7 +1038,13 @@ namespace KUR{
                         return ret;
                     }
                 } else if (isvar(token.type)){
-                    vec.push_back(NumberType(store.get<NumberType>(token.val).get(),token.is_int,token.type,token.val));
+                    auto itr = store.find(token.val);
+                    if (itr == store.storageMap.end()){
+                        ret = std::string("Object Not found:" + token.val);
+                        //TODO
+                        return ret;
+                    } else
+                        vec.push_back(NumberType(static_cast<Holder<NumberType>*>((*itr).second.get())->data.get(),token.is_int,token.type,token.val));
                 } else{
                     ret = "Invalid expression";
                     return ret;
