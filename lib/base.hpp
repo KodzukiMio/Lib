@@ -12,7 +12,7 @@
 #else //debug
 #define KURZER_ENABLE_EXCEPTIONS 1
 #endif // NDEBUG
-#ifdef KURZER_ENABLE_EXCEPTIONS
+#if KURZER_ENABLE_EXCEPTIONS
 #include<stdexcept>
 #endif // KURZER_ENABLE_EXCEPTIONS
 #ifdef __KUR_ENABLE_STRING             
@@ -23,6 +23,9 @@
 #endif // ENABLE_IOSTREAM
 #define KUR_DEBUG_ASSERT(CODE) if(KURZER_ENABLE_EXCEPTIONS){CODE}
 namespace KUR{
+    static_assert(sizeof(void*) > 2,"Does not support less than 32-bit.");
+    [[maybe_unused]] constexpr static bool is_x86 = sizeof(void*) == 4;
+    [[maybe_unused]] constexpr static bool is_x64 = sizeof(void*) == 8;
     namespace base{
         typedef unsigned long long ull;
         template<typename Tchar> struct CharT{
@@ -420,20 +423,27 @@ namespace KUR{
                 };
                 Type* temp = _chunk;
                 ull _esize = (_size << 1);
-                this->_chunk = Malloc(_esize);
-                KUR_DEBUG_ASSERT(if (!this->_chunk)throw std::runtime_error("bad alloc !"););
+                this->_chunk = _malloc(_esize);
+                KUR_DEBUG_ASSERT(
+                    if (!this->_chunk){
+                        this->_chunk = temp;
+                        throw std::runtime_error("bad alloc !");
+                    };);
                 for (ull i = 0; i < _size; ++i)*(this->_chunk + i) = *(temp + i);
                 this->_size = _esize;
                 delete[] temp;
             };
-            Array(ull initSize = 0)noexcept{//Array<T>(0) ->not alloc memory
+            inline void _construct(const ull initSize = 0)noexcept{
                 if (initSize)create(initSize);
+            };
+            Array(const ull initSize = 0)noexcept{//Array<T>(0) ->not alloc memory
+                this->_construct(initSize);
                 this->_pos = initSize;
             };
             inline void create(ull initSize = 0x10)noexcept{
                 if (initSize < 0x2)initSize = 0x2;
                 this->_size = initSize;
-                this->_chunk = Malloc(initSize);
+                this->_chunk = _malloc(initSize);
             };
             inline void move_from(Array&& other)noexcept{
                 if (_chunk)delete[] _chunk;
@@ -477,16 +487,16 @@ namespace KUR{
                 };
                 return *this;
             };
-            [[nodiscard]] inline Type* Malloc(ull nsize)noexcept{
+            [[nodiscard]] inline Type* _malloc(ull nsize)noexcept{
                 if (!nsize)return nullptr;
                 return new Type[nsize];
             };
             inline Type& operator[](ull index){
-                KUR_DEBUG_ASSERT(if (index >= _pos)throw std::runtime_error("Array<T> out of range !"););
+                KUR_DEBUG_ASSERT(if (index >= _pos){ throw std::runtime_error("Array<T> out of range !"); };);
                 return *(this->_chunk + index);
             };
             inline const Type& operator[](ull index) const{
-                KUR_DEBUG_ASSERT(if (index >= _pos)throw std::runtime_error("Array<T> out of range !"););
+                KUR_DEBUG_ASSERT(if (index >= _pos){ throw std::runtime_error("Array<T> out of range !"); };);
                 return *(this->_chunk + index);
             };
             inline Type* operator()(ull index){
@@ -505,12 +515,12 @@ namespace KUR{
                     };);
                 return this->_chunk + index;
             };
-            template<typename T> inline void push(const T value){
+            inline void push(const Type value){
                 if (this->_pos >= this->_size)expand();
                 *(this->_chunk + _pos) = value;
                 ++_pos;
             };
-            template<typename T> inline void push_back(const T value){
+            inline void push_back(const Type value){
                 if (this->_pos >= this->_size)expand();
                 *(this->_chunk + _pos) = value;
                 ++_pos;
@@ -521,7 +531,7 @@ namespace KUR{
             inline Type* data()noexcept{
                 return this->_chunk;
             };
-            inline void Free()noexcept{
+            inline void _free()noexcept{
                 if (_chunk){
                     delete[] _chunk;
                     _chunk = nullptr;
@@ -533,25 +543,31 @@ namespace KUR{
                 this->_pos = 0;
             };
             inline Type& at(base::ull _Pos){
-                KUR_DEBUG_ASSERT(if (_Pos >= _pos || _Pos < 0)throw std::runtime_error("Array<T> out of range !"););
+                KUR_DEBUG_ASSERT(if (_Pos >= _pos || _Pos < 0){ throw std::runtime_error("Array<T> out of range !"); };);
                 return *(this->_chunk + _Pos);
             };
             inline Type* begin()noexcept{ return _chunk; };
             inline Type* end()noexcept{ return this->_chunk + _pos; };
-            inline Type* last()noexcept{ return this->_chunk + _pos - 1; };
+            inline Type& last()noexcept{
+                return *(this->_chunk + _pos - 1);
+            };
             [[nodiscard]] inline Type* pop()noexcept{
                 if (!_pos)return nullptr;
                 return this->_chunk + --_pos;
             };
             inline void pop_back(){
-                KUR_DEBUG_ASSERT(if (!_pos)throw std::runtime_error("Array<T> out of range !"););
+                KUR_DEBUG_ASSERT(if (!_pos){ throw std::runtime_error("Array<T> out of range !"); };);
                 --_pos;
             };
             ~Array(){
                 if (_chunk && _allow_del)delete[] _chunk;
             };
+            void __force_release_memory(){//error deal
+                if (this->_chunk)delete[] _chunk;
+                _chunk = nullptr;
+            };
             inline Type* erase(ull index){
-                KUR_DEBUG_ASSERT(if (index >= _pos)throw std::runtime_error("Array<T> out of range !"););
+                KUR_DEBUG_ASSERT(if (index >= _pos){ throw std::runtime_error("Array<T> out of range !"); };);
                 auto _pos0 = _pos - 1;
                 for (ull i = index; i < _pos0; ++i)_chunk[i] = _chunk[i + 1];
                 --_pos;
@@ -559,7 +575,7 @@ namespace KUR{
             };
             inline ull size()const noexcept{ return this->_pos; };
             inline ull capacity()noexcept{ return this->_size; };
-            inline Type* GetData()noexcept{ return this->_chunk; };
+            inline Type* get_data()noexcept{ return this->_chunk; };
             inline void init(Type _Init_Val,ull _Size = 0)noexcept{
                 ull _Len = this->Length();
                 if (_Size)_Len = _Size;
@@ -1144,7 +1160,7 @@ namespace KUR{
                     while (tmp.size()){
                         this->update(tmp);
                         tmp.pop();
-                    }
+                    };
                 };
             };
             inline ull check(const str_t& fstr){//TODO:匹配字符串

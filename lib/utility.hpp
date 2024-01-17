@@ -4,8 +4,9 @@
 #include <cstdint>
 #include <cstring>
 #include <iomanip>
-#define __KUR_ENABLE_IOSTREAM//ç”¨äºå¼€å¯base.hppå¯¹stlçš„æ”¯æŒ
-#define __KUR_ENABLE_STRING//åŒä¸Š
+#include <type_traits>
+#define __KUR_ENABLE_IOSTREAM//ÓÃÓÚ¿ªÆôbase.hpp¶ÔstlµÄÖ§³Ö
+#define __KUR_ENABLE_STRING//Í¬ÉÏ
 #include "base.hpp"
 namespace KUR{
     namespace base{
@@ -26,7 +27,47 @@ namespace KUR{
     using ubyte2 = base::word;
     using ubyte4 = base::dword;
     using ubyte8 = base::qword;
-    template<typename T>inline void _copy_to(const T& _Val,const base::ull N,byte1* _Data)noexcept{//ç”¨äºè¦†ç›–å†…å­˜,æ³¨æ„:ä¸è¿›è¡Œè¶Šç•Œæ£€æŸ¥!
+    class stack{//ÔËĞĞÊ±Õ»,ÓÃÓÚ²»¶¨²ÎÊı´«²Î(¿É±ä²ÎÊıÄ£°åÌ«Âé·³ÁË...),ÇëÎğ´«Èë·ÇPODÀàĞÍ!
+    public:
+        using size_type = ubyte8;
+        using base_type = ubyte1;
+        base::vector<base_type>_data;
+        stack(const size_type init_size = 0){
+            this->_data._construct(init_size);
+        };
+        stack(const stack&) = delete;
+        stack& operator=(const stack&) = delete;
+        stack(stack&&) = delete;
+        stack& operator=(stack&&) = delete;
+        inline void* rsp(){//Õ»¶¥Ö¸Õë
+            return (void*)_data.end();
+        };
+        inline size_type size(){
+            return this->_data.size();
+        };
+        inline size_type capacity(){
+            return this->_data.capacity();
+        };
+        template<typename T>inline void push(const T _Val){
+            static_assert(std::is_pod<T>::value,"Only POD types are allowed.");
+            constexpr static const size_type _type_size = sizeof(T);
+            size_type overflow = _type_size + this->_data.size();
+            while (overflow >= this->_data.capacity())this->_data.expand();
+            *(T*)this->rsp() = _Val;
+            this->_data._pos += _type_size;
+        };
+        template<typename T>inline T pop(){
+            static_assert(std::is_pod<T>::value,"Only POD types are allowed.");
+            constexpr static const size_type _type_size = sizeof(T);
+            if (this->_data._pos)this->_data._pos -= _type_size;
+            KUR_DEBUG_ASSERT(if (this->size() <= 0){ throw std::runtime_error("out of range !"); };);
+            return *(T*)this->rsp();
+        };
+        inline void pop(){
+            if (--this->_data._pos <= 0)throw std::runtime_error("out of range !");
+        };
+    };
+    template<typename T>inline void _copy_to(const T& _Val,const base::ull N,byte1* _Data)noexcept{//ÓÃÓÚ¸²¸ÇÄÚ´æ,×¢Òâ:²»½øĞĞÔ½½ç¼ì²é!
         KUR_DEBUG_ASSERT(
             base::ull _Len = base::minimum(N,sizeof(T));
         base::ull _Idx = -1;
@@ -36,10 +77,10 @@ namespace KUR{
             std::memcpy(_Data,&_Val,base::minimum(N,sizeof(T)));
         };
     };
-    //æ­¤ç±»å¤§å¤šæ—¶å€™å¹¶ä¸ç”¨äºå‚¨å­˜,è€Œæ˜¯ç”¨äºç±»å‹è½¬æ¢æ“ä½œæ•°æ®;
-    template<base::ull N,typename Ty = void>class ByteN{//é™æ€èŒƒå›´
+    //´ËÀà´ó¶àÊ±ºò²¢²»ÓÃÓÚ´¢´æ,¶øÊÇÓÃÓÚÀàĞÍ×ª»»²Ù×÷Êı¾İ;
+    template<base::ull N,typename Ty = void>class ByteN{//¾²Ì¬·¶Î§
     private:
-        byte1 _data[N] = {0};//å‚¨å­˜å’ŒèŒƒå›´è¡¨ç¤º
+        byte1 _data[N] = {0};//´¢´æºÍ·¶Î§±íÊ¾
     public:
         template<typename T>inline void operator=(const T& _Val)noexcept{
             KUR::_copy_to<T>(_Val,N,_data);
@@ -48,50 +89,53 @@ namespace KUR{
         inline byte1* get_bytes()noexcept{
             return _data;
         };
+        template<typename T>inline void copy_unsafe(const T& _Val)noexcept{
+            KUR::_copy_to<T>(_Val,base::npos,_data);
+        };
     };
-    //ByteN<N>ä¸ŠèŒƒå›´æ“ä½œç‰¹åŒ–,ç”¨äºç»•è¿‡æ¨¡æ¿é™åˆ¶,å‚æ•°å¹¶æ²¡æœ‰å®é™…æ„ä¹‰.
+    //ByteN<N>ÉÏ·¶Î§²Ù×÷ÌØ»¯,ÓÃÓÚÈÆ¹ıÄ£°åÏŞÖÆ,²ÎÊı²¢Ã»ÓĞÊµ¼ÊÒâÒå.
     template<>class ByteN<0,void*>{
     private:
-        byte1 _data;//ç”¨äºè·å–ByteContaineråŸå§‹offsetåœ°å€,å¹¶ä¸ç›´æ¥ä½¿ç”¨.
+        byte1 _data;//ÓÃÓÚ»ñÈ¡ByteContainerÔ­Ê¼offsetµØÖ·,²¢²»Ö±½ÓÊ¹ÓÃ.
     public:
         inline byte1* get_bytes()noexcept{
             return &_data;
         };
         template<typename T>inline void operator=(const T& _Val)noexcept{
-            KUR::_copy_to<T>(_Val,base::npos,&_data);//base::nposç¡®ä¿å§‹ç»ˆé€‰æ‹©sizeof(T).
+            KUR::_copy_to<T>(_Val,base::npos,&_data);//base::nposÈ·±£Ê¼ÖÕÑ¡Ôñsizeof(T).
         };
     };
-    //ç”¨äºå¯¹ç±»å‹Tè¿›è¡Œå­—èŠ‚çº§åˆ«çš„æ“ä½œ;<T>ä¸å»ºè®®ä½¿ç”¨éPODç±»å‹.
-    //ç±»å®ä¾‹åŒ–å¤§å°ä¸Tä¸€è‡´(sizeof(T)==sizeof(ByteContainer<T>))=>true.
+    //ÓÃÓÚ¶ÔÀàĞÍT½øĞĞ×Ö½Ú¼¶±ğµÄ²Ù×÷;<T>²»½¨ÒéÊ¹ÓÃ·ÇPODÀàĞÍ.
+    //ÀàÊµÀı»¯´óĞ¡ÓëTÒ»ÖÂ(sizeof(T)==sizeof(ByteContainer<T>))=>true.
     template<typename T>class ByteContainer{
     public:
         using _type = T;
-        using _base_byte = base::conditional_t<base::is_unsigned_v<T>,ubyte1,byte1>;//é€‰æ‹©ç¬¦å·.
+        using _base_byte = base::conditional_t<base::is_unsigned_v<T>,ubyte1,byte1>;//Ñ¡Ôñ·ûºÅ.
         constexpr static const base::ull length = sizeof(T);
         T data;
         ByteContainer(const T& _Val):data(_Val){};
-        ByteContainer(){};
+        ByteContainer(){};//ÇëÊÖ¶¯³õÊ¼»¯data
         inline _base_byte* _begin()noexcept{
             return (_base_byte*)(&data);
         };
         inline _base_byte* _end()noexcept{
             return (_base_byte*)(&data + 1);
         };
-        //_offsetæ˜¯Tyç±»å‹çš„åç§»é‡(sizeof(Ty)),_base_offsetæ˜¯å­—èŠ‚åç§»é‡(size=1)
+        //_offsetÊÇTyÀàĞÍµÄÆ«ÒÆÁ¿(sizeof(Ty)),_base_offsetÊÇ×Ö½ÚÆ«ÒÆÁ¿(size=1)
         template<typename Ty = _base_byte>inline Ty& refbytes(const base::ull _offset,const base::ull _base_offset = 0){
             KUR_DEBUG_ASSERT(if (_offset * sizeof(Ty) + _base_offset >= length)throw std::runtime_error("Out of range !"););
-            return (Ty&)(*((Ty*)((_base_byte*)&data + _base_offset) + _offset));//æ­¤å‡½æ•°å¹¶ä¸åˆ›å»ºæ–°å¯¹è±¡,åªæ˜¯è¿”å›å…¶å®ƒè½¬æ¢åç±»å‹çš„å¼•ç”¨
+            return (Ty&)(*((Ty*)((_base_byte*)&data + _base_offset) + _offset));//´Ëº¯Êı²¢²»´´½¨ĞÂ¶ÔÏó,Ö»ÊÇ·µ»ØÆäËü×ª»»ºóÀàĞÍµÄÒıÓÃ
         };
         inline auto& operator[](const base::ull idx){
-            return this->refbytes<_base_byte>(idx);//ä¸åˆ›å»ºå¯¹è±¡,åªè¿”å›å­—èŠ‚çš„å¼•ç”¨
+            return this->refbytes<_base_byte>(idx);//²»´´½¨¶ÔÏó,Ö»·µ»Ø×Ö½ÚµÄÒıÓÃ
         };
         template<base::ull _RangeL,base::ull _RangeR>inline ByteN<_RangeR - _RangeL>& range(){//[_RangeL,_RangeR)
             static_assert(_RangeR <= length,"Out of range !");
-            return this->refbytes<ByteN<_RangeR - _RangeL>>(0,_RangeL);//ä¸åˆ›å»ºå¯¹è±¡,åªè¿”å›å­—èŠ‚èŒƒå›´çš„å¼•ç”¨
+            return this->refbytes<ByteN<_RangeR - _RangeL>>(0,_RangeL);//²»´´½¨¶ÔÏó,Ö»·µ»Ø×Ö½Ú·¶Î§µÄÒıÓÃ
         };
         inline ByteN<0,void*>& at(const base::ull _offset){
             KUR_DEBUG_ASSERT(if (_offset >= length)throw std::runtime_error("Out of range !"););
-            return  this->refbytes<ByteN<0,void*>>(0,_offset);//ä¸åˆ›å»ºå¯¹è±¡,åªè¿”å›å­—èŠ‚èŒƒå›´çš„å¼•ç”¨
+            return this->refbytes<ByteN<0,void*>>(0,_offset);//²»´´½¨¶ÔÏó,Ö»·µ»Ø×Ö½Ú·¶Î§µÄÒıÓÃ
         };
         inline base::R_Iterator<_base_byte> get_itr(){
             return base::R_Iterator<_base_byte>(this->_begin(),this->_end());
@@ -104,13 +148,17 @@ namespace KUR{
             itr._Pos = itr.end();
             return itr;
         };
-        void print_hex()noexcept{//å°ç«¯åºè¾“å‡º
+        ByteContainer& operator=(const T& _Val){
+            this->data = _Val;
+            return *this;
+        };
+        void print_hex()noexcept{//Ğ¡¶ËĞòÊä³ö
             std::ios_base::fmtflags original_flags = std::cout.flags();
             std::cout << std::hex;
             for (auto i : *this)std::cout << std::setw(2) << std::setfill('0') << static_cast<int>(static_cast<unsigned char>(*i));
             std::cout.flags(original_flags);
         };
-        inline void set(const byte1 _Val,const base::ull _first = 0,const base::ull _last = base::npos){
+        inline void set(const byte1 _Val,const base::ull _first = 0,const base::ull _last = base::npos){//(_first,_last]µÄ·¶Î§ÖĞµÄÃ¿¸ö×Ö½ÚÉèÖÃÎª_Val
             base::R_Iterator<_base_byte> _begin = this->begin();
             base::R_Iterator<_base_byte> _end = this->begin();
             _begin._Pos -= _first;
@@ -121,23 +169,4 @@ namespace KUR{
             };
         };
     };
-    /*
-    #include "lib/utility.hpp"
-    struct Data{
-    int q;
-    long c;
-    };
-    int main(){
-    kur::ByteContainer<kur::ByteN<sizeof(Data)>>b;
-    b.set(0xaf,0,sizeof(Data));
-    b.range<1,3>() = 0xabcd;
-    kur::byte2 p = 3;
-    b.at(p) = (kur::byte1)(0xee);
-    b.print_hex();
-    Data data = b.refbytes<Data>(0,0);
-    std::cout << ':' << std::hex << data.c << ':' << data.q;
-    //afafafafeeabcdaf:afafafaf:eeabcdaf
-    return 0;
-    };
-    */
 };

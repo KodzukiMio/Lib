@@ -828,9 +828,9 @@ namespace KUR{
         inline std::vector<Token> build_token_msg(const std::string& expr){
             return handle_token_msg(tokenize(expr));
         };
-        template<typename NumType,typename Ty = std::string>inline NumType get_var_value(std::string& name,Storage<Ty>& store){
-            return store.get<NumType>(name);
-        };
+        //template<typename NumType,typename Ty = std::string>inline NumType get_var_value(std::string& name,Storage<Ty>& store){
+        //    return store.get<NumType>(name);
+        //};
         std::vector<Token> convert_token_rpn(const std::vector<Token>& tokens){
             std::vector<Token>opr;
             std::vector<Token>out;
@@ -1070,11 +1070,14 @@ namespace KUR{
         };
         class Interpreter{
         public:
-            bool mode = false;//true:integer;false:decimal-fp64;
+            bool mode = false;//true:integer;false:fp64;
             int precision = 0x6;
             std::string retstr;
             Storage<std::string>store;
-            Interpreter(bool _mode = false):mode(_mode){};
+            Interpreter(bool _mode = false):mode(_mode){
+                this->store.push("pi",3.141592);
+                this->store.push("e",2.718);
+            };
             std::string& eval(const std::string& expr){
                 this->retstr = plus::eval(expr,store,mode,precision);
                 return this->retstr;

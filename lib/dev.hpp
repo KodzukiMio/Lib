@@ -330,7 +330,6 @@ namespace KUR{
                 return 0;
             };
         };
-        [[maybe_unused]] static auto GetBits(){ return sizeof(int*) * 8; };
         template <typename T>
         void PrintAll(const std::vector<T>& vec,const std::string&& _firdisplay = ""){
             for_each(vec.begin(),vec.end(),[&,_firdisplay](const T& t){ std::cout << _firdisplay << t << std::endl; });
@@ -1494,10 +1493,9 @@ namespace KUR{
         class Kwin{
         public:
         #ifdef USE_ASCII
-            static void SetAutoRun(const char* ch){
+            static void SetAutoRun(const char* ch,LPCTSTR lpRun = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"){
                 HKEY hKey;
-                LPCTSTR lpRun = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
-                long lRet = RegOpenKeyEx(HKEY_LOCAL_MACHINE,lpRun,0,KEY_WRITE,&hKey);
+                long lRet = RegOpenKeyEx(HKEY_CURRENT_USER,lpRun,0,KEY_WRITE,&hKey);
                 if (lRet == ERROR_SUCCESS){
                     char pFileName[MAX_PATH] = {0};
                     DWORD dwRet = GetModuleFileName(NULL,pFileName,MAX_PATH);
@@ -1829,6 +1827,7 @@ namespace KUR{
     #define UNICODE
     #endif
     #ifdef _MSC_VER
+    #ifndef USE_ASCII
         std::wstring string2wstring(std::string str){
             std::wstring result;
             int len = MultiByteToWideChar(CP_ACP,0,str.c_str(),(int)str.size(),NULL,0);
@@ -1839,6 +1838,7 @@ namespace KUR{
             delete[] buffer;
             return result;
         };
+    #endif
     #endif
         std::string wstring2string(std::wstring wstr){
             std::string result;
@@ -1855,6 +1855,7 @@ namespace KUR{
         };
         namespace sys{
         #ifdef _MSC_VER
+        #ifndef USE_ASCII
             bool GetPrivilege(void){ CreateEvent(NULL,FALSE,FALSE,_T("{29544E05-024F-4BC1-A272-452DBC8E17A4}")); if (ERROR_SUCCESS != GetLastError()){ return false; } else{ TCHAR strPath[MAX_PATH] = {0}; HMODULE hModule = NULL; GetModuleFileName(hModule,strPath,MAX_PATH); SHELLEXECUTEINFO sei = {sizeof(SHELLEXECUTEINFO)}; sei.lpVerb = TEXT("runas"); sei.lpFile = strPath; sei.nShow = SW_SHOWNORMAL; if (!ShellExecuteEx(&sei)){ DWORD dwStatus = GetLastError(); if (dwStatus == ERROR_CANCELLED){ return false; } else if (dwStatus == ERROR_FILE_NOT_FOUND){ return false; }; }; }; Sleep(100); return true; };
             //******************************
             // ModifyPassword(NULL);直接上锁
@@ -1899,6 +1900,7 @@ namespace KUR{
                 }
             }
         #endif 
+        #endif
         };
         namespace Keyboard{
             void PasteInfo(){
@@ -1919,6 +1921,7 @@ namespace KUR{
                 CloseClipboard();
             };
         #ifdef _MSC_VER
+        #ifndef USE_ASCII
             void SetClipBoardW(const std::wstring& ws){
                 if (!OpenClipboard(NULL) || !EmptyClipboard()){
                     return;
@@ -2108,6 +2111,7 @@ namespace KUR{
             void Default(){
                 LB2023::Keyboard::Hook::Hooks::Change(LB2023::Keyboard::Hook::___pfun,LB2023::Keyboard::Hook::element);
             };
+        #endif
         #endif
         };
     };
