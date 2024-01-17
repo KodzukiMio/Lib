@@ -27,7 +27,7 @@ namespace KUR{
     using ubyte2 = base::word;
     using ubyte4 = base::dword;
     using ubyte8 = base::qword;
-    class stack{//运行时栈,用于不定参数传参(可变参数模板太麻烦了...),请勿传入非POD类型!
+    class stack{//运行时栈(自动扩容),用于递归优化和不定参数传参(可变参数模板太麻烦了...),请勿传入非POD类型!
     public:
         using size_type = ubyte8;
         using base_type = ubyte1;
@@ -59,12 +59,12 @@ namespace KUR{
         template<typename T>inline T pop(){
             static_assert(std::is_pod<T>::value,"Only POD types are allowed.");
             constexpr static const size_type _type_size = sizeof(T);
-            if (this->_data._pos)this->_data._pos -= _type_size;
-            KUR_DEBUG_ASSERT(if (this->size() <= 0){ throw std::runtime_error("out of range !"); };);
+            KUR_DEBUG_ASSERT(if (!this->_data._pos){ throw std::runtime_error("out of range !"); };);
+            this->_data._pos -= _type_size;
             return *(T*)this->rsp();
         };
         inline void pop(){
-            if (--this->_data._pos <= 0)throw std::runtime_error("out of range !");
+            if (--this->_data._pos != (size_type)(-1))throw std::runtime_error("out of range !");
         };
     };
     template<typename T>inline void _copy_to(const T& _Val,const base::ull N,byte1* _Data)noexcept{//用于覆盖内存,注意:不进行越界检查!

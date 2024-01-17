@@ -599,7 +599,7 @@ namespace KUR{
             String(){};
             using value_type = Tchar;
             String(const Tchar* tch){
-                this->Write(tch);
+                this->write(tch);
             };
             String(const base::Array<Tchar>& arr){
                 this->Write(arr._chunk);
@@ -626,10 +626,10 @@ namespace KUR{
             inline const Tchar* operator()(const ull pos) const{
                 return &data[pos];
             };
-            inline Tchar* GetData()const{
+            inline Tchar* get_data()const{
                 return data._chunk;
             };
-            inline String& Write(const Tchar* tch){
+            inline String& write(const Tchar* tch){
                 const Tchar* _tch = tch;
                 while (*_tch){
                     this->data.push(*_tch);
@@ -637,7 +637,7 @@ namespace KUR{
                 };
                 return *this;
             };
-            inline String& Write(const String& str){
+            inline String& write(const String& str){
                 const Tchar* data = str.GetData();
                 ull _len = str.data.size();
                 for (ull i = 0; i < _len; ++i)this->data.push(*(data + i));
@@ -645,12 +645,12 @@ namespace KUR{
             };
             inline String& operator=(const Tchar* tch){
                 this->data.clear();
-                this->Write(tch);
+                this->write(tch);
                 return *this;
             };
             inline String& operator=(const String& str){
                 this->data.clear();
-                this->Write(str);
+                this->write(str);
                 return *this;
             };
             inline String substr(ull start,ull length){
@@ -672,13 +672,16 @@ namespace KUR{
                 return this->data._pos;
             };
             inline void push_back(Tchar* str){
-                this->Write(str);
+                this->write(str);
             };
             inline void push_back(Tchar str){
                 this->data.push(str);
             };
             inline void pop_back(){
                 this->data.pop_back();
+            };
+            inline Tchar pop(){
+                return *this->data.pop();
             };
         #ifdef __KUR_IOSTREAM
             friend typename base::CharT<Tchar>::out_t& operator<<(typename base::CharT<Tchar>::out_t& os,const String<Tchar>& str){
