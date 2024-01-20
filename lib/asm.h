@@ -12,7 +12,7 @@ namespace KUR{
     namespace ASM{
     #if ENVIRONMENT_IS_X64
         extern "C" {
-            inline int64_t process(void);
+            inline int64_t _test_main(void);//绝对不要使用这个!
             inline void swap(void* L,void* R);
             inline int32_t _sumof32(size_t length,const int32_t* address,size_t offset);
             inline int64_t _sumof64(size_t length,const int64_t* address,size_t offset);

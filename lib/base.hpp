@@ -12,9 +12,7 @@
 #else //debug
 #define KURZER_ENABLE_EXCEPTIONS 1
 #endif // NDEBUG
-#if KURZER_ENABLE_EXCEPTIONS
 #include<stdexcept>
-#endif // KURZER_ENABLE_EXCEPTIONS
 #ifdef __KUR_ENABLE_STRING             
 #define __KUR_STRING
 #endif
@@ -28,33 +26,31 @@ namespace KUR{
     [[maybe_unused]] constexpr static bool is_x64 = sizeof(void*) == 8;
     namespace base{
         typedef unsigned long long ull;
-        template<ull S,int Log = 0>struct Log2: Log2<S / 2,Log + 1>{};
-        template<int Log>struct Log2<1,Log>{
-            static constexpr int value = Log;
-        };
-        inline void memory_copy(void* _Dst,const void* _Src,ull _ByteSize){//速度为std::memcpy的66%.原生cpp语法无法像memcpy那样使用特定SIMD指令集优化,推荐std::memcpy
-        #ifdef __KUR_ENABLE_STRING
-            std::memcpy(_Dst,_Src,_ByteSize);
-        #else
-            if (!_ByteSize)return;
-            ull batchN = (_ByteSize >> Log2<sizeof(ull)>::value);
-            ull bytes = _ByteSize % sizeof(ull);
-            ull* _Dst8 = static_cast<ull*>(_Dst);
-            const ull* _Src8 = static_cast<const ull*>(_Src);
-            if (batchN){
-                ++batchN;
-                --_Dst8;
-                --_Src8;
-                while (--batchN)*++_Dst8 = *++_Src8;
-                ++_Dst8;
-                ++_Src8;
-                if (!bytes)return;
+        //release模式下平均性能为std::memcpy的93%.
+        void* memcpy(void* _Dst,const void* _Src,ull _ByteSize){
+            if (!_ByteSize || !_Dst || !_Src)return nullptr;
+            ull _D_adr = (ull)_Dst;
+            ull _S_adr = (ull)_Src;
+            constexpr const ull _Ofx = sizeof(ull);
+            while ((_S_adr % _Ofx) && _ByteSize){
+                *((char*)_D_adr++) = *((char*)_S_adr++);
+                --_ByteSize;
             };
-            char* _Dst1 = (char*)_Dst8;
-            const char* _Src1 = (const char*)_Src8;
-            ++bytes;
-            while (--bytes)*_Dst1++ = *_Src1++;
-        #endif // __KUR_ENABLE_STRING
+            if (!_ByteSize)return _Dst;
+            ull* _Aldr = (ull*)_D_adr;
+            const ull* _Alsc = (const ull*)_S_adr;
+            while (_ByteSize >= _Ofx){
+                *_Aldr++ = *_Alsc++;
+                _ByteSize -= _Ofx;
+            };
+            if (!_ByteSize)return _Dst;
+            char* _Fdst = (char*)_Aldr;
+            const char* _Fsrc = (const char*)_Alsc;
+            while (_ByteSize){
+                *_Fdst++ = *_Fsrc++;
+                --_ByteSize;
+            };
+            return _Dst;
         };
         template<typename Tchar> struct CharT{
         #ifdef __KUR_STRING
@@ -64,6 +60,10 @@ namespace KUR{
             using out_t = std::basic_ostream<Tchar,std::char_traits<Tchar>>;
             using in_t = std::basic_istream<Tchar,std::char_traits<Tchar>>;
         #endif // _IOSTREAM_
+        };
+        template<ull S,int Log = 0>struct Log2: Log2<S / 2,Log + 1>{};
+        template<int Log>struct Log2<1,Log>{
+            static constexpr int value = Log;
         };
         typedef int _Sequence;
         struct sort_sequence{
@@ -456,7 +456,7 @@ namespace KUR{
                     this->_chunk = temp;
                     throw std::runtime_error("bad alloc !");
                 };
-                memory_copy(_chunk,temp,_size * sizeof(Type));
+                base::memcpy(_chunk,temp,_size * sizeof(Type));
                 this->_size = _esize;
                 delete[] temp;
             };

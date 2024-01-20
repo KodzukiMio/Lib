@@ -5,8 +5,8 @@
 #include <cstring>
 #include <iomanip>
 #include <type_traits>
-#define __KUR_ENABLE_IOSTREAM//用于开启base.hpp对stl的支持
-#define __KUR_ENABLE_STRING//同上
+#define __KUR_ENABLE_IOSTREAM 1//用于开启base.hpp对stl的支持
+#define __KUR_ENABLE_STRING 1//同上
 #include "base.hpp"
 namespace KUR{
     template<typename Ty = void,typename BaseT = Ty,typename Rty = std::conditional_t<std::is_floating_point_v<Ty>,std::conditional_t<sizeof(double) == sizeof(long double),double,long double>,int64_t>>inline Rty sumof(Ty* address,size_t length,size_t offset = sizeof(Ty)){
