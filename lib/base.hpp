@@ -28,6 +28,34 @@ namespace KUR{
     [[maybe_unused]] constexpr static bool is_x64 = sizeof(void*) == 8;
     namespace base{
         typedef unsigned long long ull;
+        template<ull S,int Log = 0>struct Log2: Log2<S / 2,Log + 1>{};
+        template<int Log>struct Log2<1,Log>{
+            static constexpr int value = Log;
+        };
+        inline void memory_copy(void* _Dst,const void* _Src,ull _ByteSize){//速度为std::memcpy的66%.原生cpp语法无法像memcpy那样使用特定SIMD指令集优化,推荐std::memcpy
+        #ifdef __KUR_ENABLE_STRING
+            std::memcpy(_Dst,_Src,_ByteSize);
+        #else
+            if (!_ByteSize)return;
+            ull batchN = (_ByteSize >> Log2<sizeof(ull)>::value);
+            ull bytes = _ByteSize % sizeof(ull);
+            ull* _Dst8 = static_cast<ull*>(_Dst);
+            const ull* _Src8 = static_cast<const ull*>(_Src);
+            if (batchN){
+                ++batchN;
+                --_Dst8;
+                --_Src8;
+                while (--batchN)*++_Dst8 = *++_Src8;
+                ++_Dst8;
+                ++_Src8;
+                if (!bytes)return;
+            };
+            char* _Dst1 = (char*)_Dst8;
+            const char* _Src1 = (const char*)_Src8;
+            ++bytes;
+            while (--bytes)*_Dst1++ = *_Src1++;
+        #endif // __KUR_ENABLE_STRING
+        };
         template<typename Tchar> struct CharT{
         #ifdef __KUR_STRING
             using char_t = std::basic_string<Tchar,std::char_traits<Tchar>,std::allocator<Tchar>>;
@@ -424,12 +452,11 @@ namespace KUR{
                 Type* temp = _chunk;
                 ull _esize = (_size << 1);
                 this->_chunk = _malloc(_esize);
-                KUR_DEBUG_ASSERT(
-                    if (!this->_chunk){
-                        this->_chunk = temp;
-                        throw std::runtime_error("bad alloc !");
-                    };);
-                for (ull i = 0; i < _size; ++i)*(this->_chunk + i) = *(temp + i);
+                if (!this->_chunk){
+                    this->_chunk = temp;
+                    throw std::runtime_error("bad alloc !");
+                };
+                memory_copy(_chunk,temp,_size * sizeof(Type));
                 this->_size = _esize;
                 delete[] temp;
             };
@@ -543,12 +570,13 @@ namespace KUR{
                 this->_pos = 0;
             };
             inline Type& at(base::ull _Pos){
-                KUR_DEBUG_ASSERT(if (_Pos >= _pos || _Pos < 0){ throw std::runtime_error("Array<T> out of range !"); };);
+                KUR_DEBUG_ASSERT(if (_Pos >= _pos){ throw std::runtime_error("Array<T> out of range !"); };);
                 return *(this->_chunk + _Pos);
             };
             inline Type* begin()noexcept{ return _chunk; };
             inline Type* end()noexcept{ return this->_chunk + _pos; };
             inline Type& last()noexcept{
+                KUR_DEBUG_ASSERT(if (!_pos){ throw std::runtime_error("Array<T> out of range !"); };);
                 return *(this->_chunk + _pos - 1);
             };
             [[nodiscard]] inline Type* pop()noexcept{
@@ -567,7 +595,7 @@ namespace KUR{
                 _chunk = nullptr;
             };
             inline Type* erase(ull index){
-                KUR_DEBUG_ASSERT(if (index >= _pos){ throw std::runtime_error("Array<T> out of range !"); };);
+                KUR_DEBUG_ASSERT(if (index >= _pos || !_pos){ throw std::runtime_error("Array<T> out of range !"); };);
                 auto _pos0 = _pos - 1;
                 for (ull i = index; i < _pos0; ++i)_chunk[i] = _chunk[i + 1];
                 --_pos;

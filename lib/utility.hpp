@@ -9,6 +9,16 @@
 #define __KUR_ENABLE_STRING//Õ¨…œ
 #include "base.hpp"
 namespace KUR{
+    template<typename Ty = void,typename BaseT = Ty,typename Rty = std::conditional_t<std::is_floating_point_v<Ty>,std::conditional_t<sizeof(double) == sizeof(long double),double,long double>,int64_t>>inline Rty sumof(Ty* address,size_t length,size_t offset = sizeof(Ty)){
+        static_assert(std::is_pod_v<BaseT>&std::is_pod_v<Ty>&std::is_pod_v<Rty>,"Error Types!");
+        if (!length || !address || !offset)throw std::runtime_error("<sumof> error arguments !");
+        Rty rax = 0;
+        do{
+            rax += *(BaseT*)address;
+            address = (Ty*)((int8_t*)address + offset);
+        } while (--length);
+        return rax;
+    };
     namespace base{
         using sbyte = std::int8_t;
         using sword = std::int16_t;
@@ -39,8 +49,11 @@ namespace KUR{
         stack& operator=(const stack&) = delete;
         stack(stack&&) = delete;
         stack& operator=(stack&&) = delete;
-        inline void* rsp(){//’ª∂•÷∏’Î
+        inline void* _rsp(){ //’ª∂•÷∏’Î + 1
             return (void*)_data.end();
+        };
+        inline base_type* rsp(){//’ª∂•÷∏’Î
+            return ((base_type*)_data.end() - 1);
         };
         inline size_type size(){
             return this->_data.size();
@@ -53,7 +66,7 @@ namespace KUR{
             constexpr static const size_type _type_size = sizeof(T);
             size_type overflow = _type_size + this->_data.size();
             while (overflow >= this->_data.capacity())this->_data.expand();
-            *(T*)this->rsp() = _Val;
+            *(T*)this->_rsp() = _Val;
             this->_data._pos += _type_size;
         };
         template<typename T>inline T pop(){
@@ -61,7 +74,7 @@ namespace KUR{
             constexpr static const size_type _type_size = sizeof(T);
             KUR_DEBUG_ASSERT(if (!this->_data._pos){ throw std::runtime_error("out of range !"); };);
             this->_data._pos -= _type_size;
-            return *(T*)this->rsp();
+            return *(T*)this->_rsp();
         };
         inline void pop(){
             if (--this->_data._pos != (size_type)(-1))throw std::runtime_error("out of range !");
