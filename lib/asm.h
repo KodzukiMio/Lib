@@ -1,6 +1,7 @@
 #pragma once
-#include<cstdint>
+#include <cstdint>
 #include <stdexcept>
+#include <iostream>
 //请自行链接library.obj
 #if defined(_WIN64) || defined(__x86_64__) || defined(__amd64__)
 // Windows x64环境 或 Unix-like系统的x64环境 (Linux, macOS等)
@@ -12,8 +13,9 @@ namespace KUR{
     namespace ASM{
     #if ENVIRONMENT_IS_X64
         extern "C" {
-            inline int64_t _test_main(void);//绝对不要使用这个!
-            inline void swap(void* L,void* R);
+            inline int64_t _test_main(int64_t rcx = 0,int64_t rdx = 0,int64_t r8 = 0,int64_t r9 = 0);//不要用
+            inline bool check_parity(int64_t val);
+            inline void swap(int64_t* L,int64_t* R);
             inline int32_t _sumof32(size_t length,const int32_t* address,size_t offset);
             inline int64_t _sumof64(size_t length,const int64_t* address,size_t offset);
             inline void set_rax(int64_t val);
@@ -67,3 +69,22 @@ namespace KUR{
     };
 #endif //ENVIRONMENT_IS_X641
 }; // namespace KUR
+extern "C" void _cout_str(char* str){
+    std::cout << str;
+};
+extern "C" void _cout_i64(int64_t i64){
+    std::cout << i64;
+};
+extern "C" void _cout_c(char ch){
+    std::cout << ch;
+};
+extern "C" int64_t _cin_i64(void){
+    int64_t val;
+    std::cin >> val;
+    return val;
+};
+extern "C" char _cin_c(void){
+    char val;
+    std::cin >> val;
+    return val;
+};

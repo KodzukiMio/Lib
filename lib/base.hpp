@@ -21,6 +21,7 @@
 #endif // ENABLE_IOSTREAM
 #define KUR_DEBUG_ASSERT(CODE) if(KURZER_ENABLE_EXCEPTIONS){CODE}
 namespace KUR{
+    typedef unsigned long long ull;
     static_assert(sizeof(void*) > 2,"Does not support less than 32-bit.");
     [[maybe_unused]] constexpr static bool is_x86 = sizeof(void*) == 4;
     [[maybe_unused]] constexpr static bool is_x64 = sizeof(void*) == 8;
@@ -510,7 +511,7 @@ namespace KUR{
                     _size = other._size;
                     _pos = other._pos;
                     _chunk = new Type[_size];
-                    for (ull i = 0; i < _pos; ++i)_chunk[i] = other._chunk[i];
+                    base::memcpy(_chunk,other._chunk,_pos * sizeof(Type));
                 };
                 return *this;
             };

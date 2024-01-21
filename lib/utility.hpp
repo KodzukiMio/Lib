@@ -2,23 +2,12 @@
 #include <iostream> 
 #include <string> 
 #include <cstdint>
-#include <cstring>
 #include <iomanip>
 #include <type_traits>
 #define __KUR_ENABLE_IOSTREAM 1//用于开启base.hpp对stl的支持
 #define __KUR_ENABLE_STRING 1//同上
 #include "base.hpp"
 namespace KUR{
-    template<typename Ty = void,typename BaseT = Ty,typename Rty = std::conditional_t<std::is_floating_point_v<Ty>,std::conditional_t<sizeof(double) == sizeof(long double),double,long double>,int64_t>>inline Rty sumof(Ty* address,size_t length,size_t offset = sizeof(Ty)){
-        static_assert(std::is_pod_v<BaseT>&std::is_pod_v<Ty>&std::is_pod_v<Rty>,"Error Types!");
-        if (!length || !address || !offset)throw std::runtime_error("<sumof> error arguments !");
-        Rty rax = 0;
-        do{
-            rax += *(BaseT*)address;
-            address = (Ty*)((int8_t*)address + offset);
-        } while (--length);
-        return rax;
-    };
     namespace base{
         using sbyte = std::int8_t;
         using sword = std::int16_t;
@@ -37,6 +26,28 @@ namespace KUR{
     using ubyte2 = base::word;
     using ubyte4 = base::dword;
     using ubyte8 = base::qword;
+    template<typename Ty = void,typename BaseT = Ty,typename Rty = std::conditional_t<std::is_floating_point_v<Ty>,std::conditional_t<sizeof(double) == sizeof(long double),double,long double>,int64_t>>inline Rty sumof(Ty* address,size_t length,size_t offset = sizeof(Ty)){
+        static_assert(std::is_pod_v<BaseT>&std::is_pod_v<Ty>&std::is_pod_v<Rty>,"Error Types!");
+        if (!length || !address || !offset)throw std::runtime_error("<sumof> error arguments !");
+        Rty rax = 0;
+        do{
+            rax += *(BaseT*)address;
+            address = (Ty*)((int8_t*)address + offset);
+        } while (--length);
+        return rax;
+    };
+    template<typename T = char>base::String<T> xor_crypt(base::String<T>& src,base::String<T>& key){//简易数据加密(不要用于重要数据)
+        T* sbytes = src.data._chunk;
+        ull ssize = src.size();
+        T* kbytes = key.data._chunk;
+        ull ksize = key.size();
+        if (!ksize || !ssize || ksize > ssize) throw std::invalid_argument("key or src size must > 0 and key size <= src size.");
+        base::String<T> result;
+        result.data._construct(ssize);
+        result.data._pos = ssize;
+        for (ull i = 0; i < ssize; ++i)result[i] = sbytes[i] ^ kbytes[i % ksize];
+        return result;
+    };
     class stack{//运行时栈(自动扩容),用于递归优化和不定参数传参(可变参数模板太麻烦了...),请勿传入非POD类型!
     public:
         using size_type = ubyte8;
@@ -87,7 +98,7 @@ namespace KUR{
         byte1 * _Ptr = (byte1*)(&_Val);
         while ((++_Idx) < _Len)_Data[_Idx] = _Ptr[_Idx];
         )else{
-            std::memcpy(_Data,&_Val,base::minimum(N,sizeof(T)));
+            base::memcpy(_Data,&_Val,base::minimum(N,sizeof(T)));
         };
     };
     //此类大多时候并不用于储存,而是用于类型转换操作数据;
