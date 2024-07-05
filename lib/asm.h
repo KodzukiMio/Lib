@@ -13,7 +13,7 @@ namespace KUR{
     namespace ASM{
     #if ENVIRONMENT_IS_X64
         extern "C" {
-            inline int64_t _test_main(int64_t rcx = 0,int64_t rdx = 0,int64_t r8 = 0,int64_t r9 = 0);//不要用
+            inline int64_t safe_main(int64_t rcx = 0,int64_t rdx = 0,int64_t r8 = 0,int64_t r9 = 0);//不要用
             inline bool check_parity(int64_t val);
             inline void swap(int64_t* L,int64_t* R);
             inline int32_t _sumof32(size_t length,const int32_t* address,size_t offset);
@@ -31,6 +31,8 @@ namespace KUR{
             inline int64_t get_rdi(void);
             inline int64_t get_rsp(void);
             inline int64_t get_rbp(void);
+            int _transition(int current,char itrc,size_t idx,size_t imax);
+            bool _verify_token(const char* str,size_t length);
         };
         inline void validate_arguments(void* address,size_t length,size_t offset){
             if (!address || !length || !offset)throw std::invalid_argument("Invalid arguments: Null pointer or zero length/offset.");
@@ -69,6 +71,7 @@ namespace KUR{
     };
 #endif //ENVIRONMENT_IS_X641
 }; // namespace KUR
+//下面的函数内联都会改变reg的值
 extern "C" void _cout_str(char* str){
     std::cout << str;
 };

@@ -193,4 +193,6 @@ namespace KUR{
             };
         };
     };
+    //¼ÙµÄmov to,from
+#define MMOVE(to,from)  ((*(KUR::ByteN<sizeof(from)>*)to) = (*(KUR::ByteN<sizeof(from)>*)from));
 };

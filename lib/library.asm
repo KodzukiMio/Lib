@@ -97,46 +97,164 @@ check_parity proc;int64_t val ->rcx
 check_parity endp
 
 .data
-ostr95 byte "hello world !",0
-ostr99 byte "bad world !",0
+;State
+s101_start equ 0
+s101_L_sign equ 1
+s101_R_sign equ 2
+s101_normal equ 3
+s101_success equ 4
+s101_invalid equ 5
+;sign-table
+L_Sign equ '<'
+R_Sign equ '>'
+R_Next equ ':'
 .code
-;这个_test_main是学习用的.
-;读取2个用户输入的数字,相同输出hello world,不同输出bad world
-_test_main proc export frame
-	.endprolog
-	sub rsp,28h
-	;call _test_main时,返回地址8bytes被压入栈,|sub rsp,8h|进行16字节对齐
-	;sub rsp,20h,保留32字节(选择保存rcx,rdx,r8,r9)
-	mov [rsp+8],rax;保存2reg,还有16字节
-	mov [rsp+16],rbx
-	;dosomething...
-	;读取数字
-	call _cin_i64
-	mov rbx,rax
-	call _cin_i64
-	mov rdx,rax
-	;比较rbx == rdx
-	cmp rbx,rdx
-	jz L109;true => L109
-	;jz是ZF = 1跳转,jnz是ZF = 0跳转 
-	;=> | jnz -> if(val != 0) | jz -> if(val == 0) |
-	mov rbx,0;false
-	jmp L110
-L109:
-	mov rbx,1
-L110:
-	cmp rbx,1
-	jz L136 
-	lea rcx,[ostr99]
-	jmp L137
-L136:
-	lea rcx,[ostr95]
-L137:
-	call _cout_str
-	mov rax,[rsp+8];恢复2reg
-	mov rbx,[rsp+16]
-	add rsp,28h;恢复
+_transition proc
+;int current -> rcx,char itrc -> rdx,size_t idx -> r8,size_t imax -> r9
+	cmp rcx,s101_start
+	jz lsign
+	cmp rcx,s101_L_sign
+	jz lsign
+	cmp rcx,s101_R_sign
+	jz rsign
+	cmp rcx,s101_normal
+	jz normal
+	jmp default
+lsign:
+	cmp rdx,L_Sign
+	jz L127
+	jmp default
+L127:
+	cmp r8,0
+	jz L130
+	mov rax,s101_normal
 	ret
-_test_main endp
+	L130:
+	mov rax,s101_L_sign
+	ret
+normal:
+	cmp rdx,R_Sign
+	jz L146
+	cmp rdx,L_Sign
+	jz default
+	cmp rdx,R_Next
+	jz default
+	jmp L160
+rsign:
+	cmp r8,r9
+	jz L155
+	cmp rdx,R_Next
+	jz L160
+default:
+	mov rax,s101_invalid 
+end133:
+	ret
+L146:
+	mov rax,s101_R_sign
+	ret
+L155:
+	mov rax,s101_success
+	ret
+L160:
+	mov rax,s101_normal
+	ret
+_transition endp
+
+_verify_token proc;<<key>:value>
+;const char*str->rcx,size_t length->rdx
+	push r10
+	push r8
+	push r9
+	push r13
+	mov r10,rcx;char*
+	mov r9,rdx;length
+	xor r8,r8;idx=0
+	mov r13,s101_start;state
+	mov rax,r13
+L171:
+	mov rcx,r13
+	movzx rdx,byte ptr[r10+r8]
+	call _transition
+	mov r13,rax
+	cmp r13,s101_success
+	jz L178
+	cmp r13,s101_invalid
+	jz L180
+	cmp r8,r9
+	inc r8
+	jbe L171
+	mov rax,0
+cl184:
+	pop r13
+	pop r9
+	pop r8
+	pop r10
+	ret
+L178:
+	mov rax,1
+	jmp cl184
+L180:
+	mov rax,0
+	jmp cl184
+_verify_token endp
+
+safe_call proc uses rbp rbx rcx rdx rsi rdi r8 r9 r10 r11 r12 r13 r14 r15
+;rax 作为参数,保证不改变除了(EFL,RAX,RIP)其它reg的值.不支持栈传递参数
+	sub rsp,32
+	push r15
+	mov [rsp+8],r15
+	mov [rsp+16],rsp
+	mov [rsp+24],r11
+	mov [rsp+32],rbp
+	call rax
+	mov rbp,[rsp+32]
+	mov r11,[rsp+24]
+	mov rsp,[rsp+16]
+	mov r15,[rsp+8]
+	pop r15
+	add rsp,32
+	ret
+safe_call endp
+cin_i64 proc
+	mov rax,offset _cin_i64
+	call safe_call
+	ret
+cin_i64 endp
+cin_c proc
+	mov rax,offset _cin_c
+	call safe_call
+	ret
+cin_c endp
+cout_i64 proc
+	mov rax,offset _cout_i64
+	call safe_call
+	ret
+cout_i64 endp
+cout_str proc
+	mov rax,offset _cout_str
+	call safe_call
+	ret
+cout_str endp
+cout_c proc
+	mov rax,offset _cout_c
+	call safe_call
+	ret
+cout_c endp
+.data
+fp244 real8 3.1415926e+0
+.code
+test_main proc;
+	
+
+	ret
+test_main endp
+safe_main proc export frame
+	.endprolog
+	push rax
+	mov rax,offset test_main
+	call safe_call
+	pop rax
+	ret
+safe_main endp
 
 end

@@ -1075,8 +1075,8 @@ namespace KUR{
             std::string retstr;
             Storage<std::string>store;
             Interpreter(bool _mode = false):mode(_mode){
-                this->store.push("pi",3.141592);
-                this->store.push("e",2.718);
+               /* this->store.push("pi",3.141592);  //还未支持变量
+                this->store.push("e",2.718);*/
             };
             std::string& eval(const std::string& expr){
                 this->retstr = plus::eval(expr,store,mode,precision);

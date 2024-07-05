@@ -1,5 +1,6 @@
 #pragma once
 #include<Windows.h>
+#include"lib/asm.h"
 namespace KUR{
     class gdtime{ // 获取精确时间
     public:

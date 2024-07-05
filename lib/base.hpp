@@ -32,7 +32,7 @@ namespace KUR{
             if (!_ByteSize || !_Dst || !_Src)return nullptr;
             ull _D_adr = (ull)_Dst;
             ull _S_adr = (ull)_Src;
-            constexpr const ull _Ofx = sizeof(ull);
+            constexpr static const ull _Ofx = sizeof(ull);
             while ((_S_adr % _Ofx) && _ByteSize){
                 *((char*)_D_adr++) = *((char*)_S_adr++);
                 --_ByteSize;
@@ -239,6 +239,20 @@ namespace KUR{
             };
             return _End;
         };
+        template<typename Ty>inline Ty rol(Ty _Val,unsigned int _Shift){
+            static_assert(base::is_integral_v<Ty>,"Ty must be integral type.");
+            constexpr static const unsigned int _NumBits = sizeof(Ty) << 3;
+            _Shift %= _NumBits;
+            if (!_Shift) return _Val;
+            return (_Val << _Shift) | (_Val >> (_NumBits - _Shift));
+        };
+        template<typename Ty>inline Ty ror(Ty _Val,unsigned int _Shift){
+            static_assert(base::is_integral_v<Ty>,"Ty must be integral type.");
+            constexpr static const unsigned int _NumBits = sizeof(Ty) << 3;
+            _Shift %= _NumBits;
+            if (!_Shift) return _Val;
+            return (_Val >> _Shift) | (_Val << (_NumBits - _Shift));
+        };
         const constexpr ull npos = -1;
         template<typename Tchar,typename base::enable_if<base::is_character<Tchar>::value>::type* = nullptr>inline ull bf_search(const Tchar* _Sstr,const Tchar* _Fstr,const ull _First = 0,const ull _Last = base::npos){
             const Tchar* _Ssptr = _Sstr + _First;
@@ -284,8 +298,7 @@ namespace KUR{
                 ++_Sstr;
                 ++_Fstr;
             };
-            if (!*_Fstr)return true;
-            return false;
+            return !*_Fstr;
         };
 
         template<typename _Tp,typename _CmpPfn2Args>inline void sort_bubble(_Tp* _Begin,_Tp* _End,_CmpPfn2Args _CmpPfn){//[_Begin,_End)    _Cmpfn(T*,T*)
@@ -451,7 +464,7 @@ namespace KUR{
                     return;
                 };
                 Type* temp = _chunk;
-                ull _esize = (_size << 1);
+                ull _esize = _size ? (_size << 1) : 2;
                 this->_chunk = _malloc(_esize);
                 if (!this->_chunk){
                     this->_chunk = temp;
@@ -484,7 +497,8 @@ namespace KUR{
             };
             Array(const Array& other)noexcept: _size(other._size),_pos(other._pos){
                 _chunk = new Type[_size];
-                for (ull i = 0; i < _pos; ++i)_chunk[i] = other._chunk[i];
+                if (_chunk && _pos > 0)for (ull i = 0; i < _pos; ++i)_chunk[i] = other._chunk[i];
+                this->_allow_del = other._allow_del;
             };
             Array(Array&& other) noexcept: _allow_del(other._allow_del),_chunk(other._chunk),_size(other._size),_pos(other._pos){
                 other._chunk = nullptr;
@@ -580,6 +594,10 @@ namespace KUR{
                 KUR_DEBUG_ASSERT(if (!_pos){ throw std::runtime_error("Array<T> out of range !"); };);
                 return *(this->_chunk + _pos - 1);
             };
+            inline Type* last_()noexcept{
+                KUR_DEBUG_ASSERT(if (!_pos){ throw std::runtime_error("Array<T> out of range !"); };);
+                return this->_chunk + _pos - 1;
+            };
             [[nodiscard]] inline Type* pop()noexcept{
                 if (!_pos)return nullptr;
                 return this->_chunk + --_pos;
@@ -667,7 +685,7 @@ namespace KUR{
                 return *this;
             };
             inline String& write(const String& str){
-                const Tchar* data = str.GetData();
+                const Tchar* data = str.get_data();
                 ull _len = str.data.size();
                 for (ull i = 0; i < _len; ++i)this->data.push(*(data + i));
                 return *this;
@@ -960,250 +978,9 @@ namespace KUR{
             using tree_t = base::tree<T,init_size>;//Tree type
             using node_t = base::_tree_search_t<T,init_size>;//Tree::Node type
         };
-        template<typename T,ull init_size = 0x10>class trie_node{
-        public:
-            using value_type = T;
-            using _type_node = typename base::Array<base::trie_node<T,init_size>,init_size>;
-            _type_node next_nodes;
-            T type_val = T(0);
-            bool is_str = false;
-            trie_node(const T& val):type_val(val){};
-            trie_node(){};
-            inline trie_node* find(const T& val){
-                for (auto& itr : next_nodes)if (itr.type_val == val)return &itr;
-                return nullptr;
-            };
-            inline trie_node* insert_node(const T& val){
-                this->next_nodes.push(trie_node(val));
-                return this->next_nodes.last();
-            };
-            inline bool is_no_end(){
-                return next_nodes.size();
-            };
-        };
-        template<typename T,ull init_size = 0x10,typename node_t = base::trie_node<T,init_size>,typename base::enable_if<base::is_character<T>::value>::type* = nullptr>class TrieTree{
-        public:
-            using value_type = T;
-            using str_t = base::String<T,init_size>;
-            using loop_t = base::Array<ull,init_size>;
-            using loop_node_t = base::Array<node_t*,init_size>;
-            using loop_all_str_t = base::Array<str_t,init_size>;
-            node_t root;
-            TrieTree(){};
-            inline bool find(const str_t& fstr){
-                ull pos = 0;
-                ull msize = fstr.data.size();
-                node_t* next_node = &root;
-                while (next_node->is_no_end() && (pos < msize)){
-                    next_node = next_node->find(fstr[pos]);
-                    ++pos;
-                    if (next_node)continue;
-                    return false;
-                };
-                if (msize != pos || !next_node->is_str)return false;
-                return true;
-            };
-            inline node_t* find_prefix(const str_t& fstr){
-                ull pos = 0;
-                ull msize = fstr.data.size();
-                node_t* next_node = &root;
-                while (next_node->is_no_end() && (pos < msize)){
-                    next_node = next_node->find(fstr[pos]);
-                    ++pos;
-                    if (next_node)continue;
-                    return nullptr;
-                };
-                if (msize != pos)return nullptr;
-                return next_node;
-            };
-            inline node_t* search(node_t* beg_node,const T& val){
-                if (!beg_node)return nullptr;
-                if (val == beg_node->type_val)return beg_node;
-                node_t* ptr = nullptr;
-                for (auto& itr : beg_node->next_nodes)if (ptr = search(&itr,val))return ptr;
-                return nullptr;
-            };
-            inline void insert(const str_t& fstr){
-                ull msize = fstr.data.size();
-                ull idx = 0;
-                node_t* bnode = &this->root;
-                node_t* last_node = bnode;
-                while (idx < msize){
-                    last_node = bnode;
-                    bnode = bnode->find(fstr[idx]);
-                    if (!bnode)bnode = last_node->insert_node(fstr[idx]);
-                    ++idx;
-                };
-                bnode->is_str = true;
-            };
-            inline bool del_str(const str_t& fstr){
-                if (!this->find(fstr))return false;
-                if (fstr.data.size() == 1){
-                    this->root.find(fstr[0])->is_str = false;
-                    return true;
-                };
-                ull idx = 0;
-                node_t* fptr = &this->root;
-                base::Array<node_t*,init_size>tmp_vec;
-                while (fptr = this->search(fptr,fstr[idx])){
-                    ++idx;
-                    tmp_vec.push(fptr);
-                };
-                idx = tmp_vec.size() - 1;
-                for (;idx > 0;--idx)if (tmp_vec[idx]->next_nodes.size() > 1)break;
-                node_t* tmp = tmp_vec[idx];
-                if (!idx){
-                    tmp_vec.last()->is_str = false;
-                    goto step;
-                };
-                tmp->next_nodes.erase(tmp->find(((node_t*)tmp_vec[idx + 1])->type_val) - tmp->next_nodes.begin());
-            step:
-                return true;
-            };
-            bool _go_back(loop_node_t& path_array,node_t*& last_node){
-                if (path_array.size() == 1)return false;
-                last_node = *path_array.pop();
-                while ((path_array.size() > 1) && ((*path_array.last())->next_nodes.size() == 1))last_node = *path_array.pop();
-                return true;
-            };
-            inline bool _loop(node_t* node,loop_node_t& path_array){
-                node_t* tnode = node;
-                if (!path_array.size()){
-                    path_array.push(tnode);
-                    while (tnode->is_no_end() && !tnode->is_str){
-                        tnode = &tnode->next_nodes[0];
-                        path_array.push(tnode);
-                    };
-                    return true;
-                };
-                tnode = *path_array.last();
-                if (tnode->is_no_end()){
-                    tnode = &tnode->next_nodes[0];
-                    path_array.push(tnode);
-                    while (tnode->is_no_end() && !tnode->is_str){
-                        tnode = &tnode->next_nodes[0];
-                        path_array.push(tnode);
-                    };
-                    return true;
-                } else{
-                    node_t* last_node = nullptr;
-                    node_t* lastnode = nullptr;
-                    while (_go_back(path_array,last_node)){
-                        lastnode = *path_array.last();
-                        if (lastnode->next_nodes.size() > 1){
-                            if (last_node != lastnode->next_nodes.last()){
-                                path_array.push(last_node + 1);
-                                return this->_loop(node,path_array);
-                            };
-                        };
-                    };
-                    if (path_array.size() == 1){
-                        if (last_node != (*path_array[0]).next_nodes.last()){
-                            path_array.push(last_node + 1);
-                            return this->_loop(node,path_array);
-                        };
-                    };
-                    return false;
-                };
-                return true;
-            };
-            inline str_t _build_str(loop_node_t& path_array){
-                ull idx = 1;
-                ull msize = path_array.size();
-                str_t tmp;
-                while (idx < msize)tmp.data.push(path_array[idx++]->type_val);
-                return tmp;
-            };
-            inline str_t get_next(const str_t& prefix_str,loop_node_t& path_array,node_t* f_node = nullptr){
-                node_t* snode = f_node;
-                if (!snode)snode = this->find_prefix(prefix_str);
-                if (!snode)return "";
-                if (this->_loop(snode,path_array))return this->_build_str(path_array);
-                return "";
-            };
-            inline void get_next_all(const str_t& prefix_str,loop_all_str_t& str_array){
-                loop_node_t path_array;
-                node_t* snode = this->find_prefix(prefix_str);
-                if (!snode)return;
-                while (this->_loop(snode,path_array))str_array.push(this->_build_str(path_array));
-            };
-            inline node_t* find_suffix_first(const str_t& suffix_str,node_t* base_node){
-                //TODO:寻找第一个符合后缀的节点
-                return nullptr;
-            };
-        };
-        template<typename T>using trie_tree = TrieTree<T>;
-        //using trie = KUR::base::trie_tree_types<char>;
-        template<typename T,ull init_size = 0x10>struct trie_tree_types{ //recommendation
-        public:
-            using tree_t = typename base::TrieTree<T,init_size>;
-            using node_t = typename tree_t::node_t;
-            using value_type = typename tree_t::value_type;
-            using str_t = typename tree_t::str_t;
-            using loop_t = typename tree_t::loop_t;
-            using loop_node_t = typename tree_t::loop_node_t;
-            using loop_all_str_t = typename tree_t::loop_all_str_t;
-        };
-        template<typename T,ull init_size = 0x10>class trie_ac_node{
-        public:
-            using value_type = T;
-            using _type_node = typename base::Array<base::trie_ac_node<T,init_size>,init_size>;
-            _type_node next_nodes;
-            T type_val = T(0);
-            bool is_str = false;
-            trie_ac_node* fail_node_ptr = nullptr;
-            trie_ac_node(const T& val):type_val(val){};
-            trie_ac_node(){};
-            inline trie_ac_node* find(const T& val){
-                for (auto& itr : next_nodes)if (itr.type_val == val)return &itr;
-                return nullptr;
-            };
-            inline trie_ac_node* insert_node(const T& val){
-                this->next_nodes.push(trie_ac_node(val));
-                return this->next_nodes.last();
-            };
-            inline bool is_no_end(){
-                return next_nodes.size();
-            };
-        };
-        //未完成
-        template<typename T,ull init_size = 0x10>class Aho_Corasick:public TrieTree<T,init_size,trie_ac_node<T,init_size>>{
-        public:
-            using _type = Aho_Corasick;
-            using node_t = trie_ac_node<T,init_size>;
-            using value_type = T;
-            using str_t = base::String<T,init_size>;
-            using loop_t = base::Array<ull,init_size>;
-            using loop_node_t = base::Array<node_t*,init_size>;
-            using loop_all_str_t = base::Array<str_t,init_size>;
-            Aho_Corasick(){};
-            inline void update(loop_node_t& path_array){
-                str_t fstr = this->_build_str(path_array);
-                base::reverse<str_t::value_type>(fstr.begin(),fstr.end());
-                node_t* fnode = nullptr;
-                while (!fnode && fstr.data.pop())fnode = this->find_suffix_first(fstr,&this->root);
-                if (!fnode)fnode = &this->root;
-                ((node_t*)(*path_array.last()))->fail_node_ptr = fnode;
-            };
-            inline void finish(){
-                loop_node_t path_array;
-                while (this->_loop(&this->root,path_array)){
-                    loop_node_t tmp = path_array;
-                    while (tmp.size()){
-                        this->update(tmp);
-                        tmp.pop();
-                    };
-                };
-            };
-            inline ull check(const str_t& fstr){//TODO:匹配字符串
-                return -1;
-            };
-        };
-        template<typename T>using aho_corasick = Aho_Corasick<T>;
     };
     using KUR::base::vector;
     using KUR::base::string;
     using KUR::base::wstring;
     using KUR::base::queue;
 };
-namespace kur = KUR;

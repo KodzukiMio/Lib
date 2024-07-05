@@ -28,22 +28,27 @@ char *SZN_ReadStr(char end, size_t length)
     return ret;
 }
 // deafult initcapacity = 0
-size_t SZN_ReadLineUnlimited(char** cptr,size_t initcapacity){
+size_t SZN_ReadLineUnlimited(char **cptr, size_t initcapacity)
+{
     size_t capacity = 0x10;
-    if (initcapacity){
+    if (initcapacity)
+    {
         capacity = initcapacity;
     };
-    char* line = (char*)malloc(capacity * sizeof(char));
+    char *line = (char *)malloc(capacity * sizeof(char));
     if (!line)
         return NULL;
     size_t length = 0;
     int c;
 
-    while ((c = fgetc(stdin)) != EOF && c != '\n'){
-        if (length + 1 == capacity){
+    while ((c = fgetc(stdin)) != EOF && c != '\n')
+    {
+        if (length + 1 == capacity)
+        {
             capacity = capacity + (capacity >> 1);
-            char* temp = (char*)realloc(line,capacity * sizeof(char));
-            if (!temp){
+            char *temp = (char *)realloc(line, capacity * sizeof(char));
+            if (!temp)
+            {
                 free(line);
                 return NULL;
             }
@@ -52,7 +57,8 @@ size_t SZN_ReadLineUnlimited(char** cptr,size_t initcapacity){
         line[length++] = c;
     }
 
-    if (length == 0 && c == EOF){
+    if (length == 0 && c == EOF)
+    {
         free(line);
         return NULL;
     }
@@ -127,7 +133,7 @@ void sort_select(int *_Begin, int *_End, int (*_CmpPfn)(int *, int *))
         int *_Min_ = _Tmp1;
         while (_Tmp1 < _End)
         {
-            if (_CmpPfn(_Tmp1,_Min_))
+            if (_CmpPfn(_Tmp1, _Min_))
                 _Min_ = _Tmp1;
             ++_Tmp1;
         };

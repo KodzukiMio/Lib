@@ -2,7 +2,7 @@
 #include"dev.hpp"
 #include"utility.hpp"
 #include"plus.hpp"
-
+#include "script.hpp"
 namespace kurzer{
     using namespace KUR;
     using namespace KUR::LB2022;
@@ -16,3 +16,4 @@ namespace kurzer{
     using namespace KUR::LB2023::sys;
     using namespace KUR::LB2023::thread;
 }
+namespace kur = KUR;

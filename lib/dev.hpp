@@ -222,8 +222,7 @@ namespace KUR{
             };
             return dst_str;
         };
-        template <typename Tchar = char>
-        std::vector<_KUR_TYPE_CHAR_(Tchar)> split(const _KUR_TYPE_CHAR_(Tchar)& s,const _KUR_TYPE_CHAR_(Tchar)& seperator){
+        template <typename Tchar = char>std::vector<_KUR_TYPE_CHAR_(Tchar)> split(const _KUR_TYPE_CHAR_(Tchar)& s,const _KUR_TYPE_CHAR_(Tchar)& seperator){
             std::vector<_KUR_TYPE_CHAR_(Tchar)> result;
             size_t posBegin = 0;
             size_t posSeperator = s.find(seperator);
@@ -232,8 +231,7 @@ namespace KUR{
                 posBegin = posSeperator + seperator.size();
                 posSeperator = s.find(seperator,posBegin);
             };
-            if (posBegin != s.length())
-                result.push_back(s.substr(posBegin));
+            if (posBegin != s.length())result.push_back(s.substr(posBegin));
             return result;
         };
         // 可能有bug
@@ -552,7 +550,7 @@ namespace KUR{
                 if (this == &str){
                     return *this;
                 };
-                delete this->data;
+                delete[] this->data;
                 this->data = str.data;
                 str.data = nullptr;
                 return *this;
@@ -1822,6 +1820,19 @@ namespace KUR{
     };
 
     namespace LB2023{
+        template<typename Tchar>std::wstring read_wstr(Tchar* path){
+            std::locale::global(std::locale("zh_CN.UTF-8"));
+            std::wifstream wif(path);
+            wif.imbue(std::locale("zh_CN.UTF-8"));
+            std::wstring data,tmp;
+            while (std::getline(wif,tmp)){
+                data += tmp;
+                data += L'\n';
+            };
+            data.pop_back();
+            wif.close();
+            return data;
+        };
         /* UNICODE */
     #ifndef UNICODE
     #define UNICODE
