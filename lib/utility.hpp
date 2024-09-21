@@ -203,7 +203,10 @@ namespace kur{
     public:
         Key first;
         Value second;
-        hash_node_unit(){};
+        hash_node_unit(){
+            first = Key();
+            second = Value();
+        };
         hash_node_unit(const Key& _Key,const Value& _Val){
             this->first = _Key;
             this->second = _Val;
@@ -214,6 +217,7 @@ namespace kur{
     public:
         using unit_type = hash_node_unit<Key,Value>;
         using node_type = typename  base::list<hash_node_unit<Key,Value>>::node_type;
+        using unit_mul_type = base::vector<node_type*>;
         using element_type = bucket_unit<Key,Value>;
         base::list<unit_type>unit;
         element_type* next = nullptr;
@@ -230,6 +234,15 @@ namespace kur{
             };
             return nullptr;
         };
+        inline unit_mul_type get_mul_object(const Key& _Key){
+            node_type* tmp = this->unit.address;
+            unit_mul_type munit;
+            while (tmp){
+                if (tmp->data.first == _Key)munit.push_back(tmp);
+                tmp = tmp->next;
+            };
+            return munit;
+        }
         inline Value* get(const node_type* node){
             if (node)return &(node->data.second);
             return nullptr;
@@ -295,6 +308,7 @@ namespace kur{
         using unit_type = bucket_unit<Key,Value>;
         using iterator_type = bucket_iterator<Key,Value>;
         using node_type = typename base::list_node<hash_node_unit<Key,Value>>;
+        using unit_mul_type = base::vector<node_type*>;
         using ref_itrnode_type = typename base::list_node<unit_type*>;
         float factor = 0;
         uint64_t limit = 0;
@@ -350,10 +364,7 @@ namespace kur{
             ++this->_size;
             return tmp->insert(_Key,_Val);
         }
-        inline void erase(const Key& _Key){
-            unit_type* tmp = &this->data[this->get_pos(_Key)];
-            if (tmp == nullptr)return;
-            node_type* getv = tmp->get_object(_Key);
+        inline void erase(unit_type* tmp,node_type* getv){
             if (getv == nullptr)return;
             if (tmp->unit.size() > 1){
                 tmp->unit.erase(getv);
@@ -365,14 +376,35 @@ namespace kur{
             }
             --this->_size;
         }
+        inline void erase(const Key& _Key){
+            unit_type* tmp = &this->data[this->get_pos(_Key)];
+            if (tmp == nullptr)return;
+            node_type* getv = tmp->get_object(_Key);
+            this->erase(tmp,getv);
+        }
+        inline void erase_multiple(const Key& _Key){
+            unit_type* tmp = &this->data[this->get_pos(_Key)];
+            if (tmp == nullptr)return;
+            unit_mul_type getv = tmp->get_mul_object(_Key);
+            for (size_t idx = 0;idx < getv._pos;++idx)this->erase(tmp,getv[idx]);
+        }
+        inline void erase_multiple(const unit_mul_type& unit_mul,const size_t idx){
+            if (idx >= unit_mul.size() || !unit_mul.size())return;
+            unit_type* tmp = &this->data[this->get_pos(unit_mul[0]->data.first)];
+            if (tmp == nullptr)return;
+            this->erase(tmp,unit_mul[idx]);
+        }
         inline uint64_t size(){
             return this->_size;
         };
-        Value* get(const Key& _Key){
+        inline Value* get(const Key& _Key){
             return this->data[this->get_pos(_Key)].get(_Key);
         };
-        node_type* get_object(const Key& _Key){
+        inline node_type* get_object(const Key& _Key){
             return this->data[this->get_pos(_Key)].get_object(_Key);
+        };
+        inline unit_mul_type get_mul_object(const Key& _Key){
+            return this->data[this->get_pos(_Key)].get_mul_object(_Key);
         };
     };
     /*对于自定义数据结构做为Key的要求:重载==操作符,默认构造函数,带参构造函数,uint64_t hash_value()const函数.
@@ -387,6 +419,8 @@ namespace kur{
         using bk_type = bucket<Key,Value>;
         using iterator_type = bucket_iterator<Key,Value>;
         using element_type = typename base::list<hash_node_unit<Key,Value>>::node_type;
+        using node_type = typename base::list_node<hash_node_unit<Key,Value>>;
+        using unit_mul_type = base::vector<node_type*>;
         float factor = 0;//负载因子
         bk_type* _bucket = nullptr;//桶
         unordered_map(const uint64_t base_size = 0x20,const float _factor = 0.7f){
@@ -429,7 +463,7 @@ namespace kur{
         inline float bucket_utilization(){//真实空间使用率
             return  (float)this->size() / (float)this->_bucket->data.capacity();
         }
-        inline element_type* create(const Key& _Key,const Value& _Val){//插入唯一键值
+        inline element_type* create(const Key& _Key,const Value& _Val){//插入键值,key->value,value,...
             element_type* tmp = this->_bucket->set(_Key,_Val);
             if (this->_bucket->_size >= this->_bucket->limit)this->expand();
             return tmp;
@@ -445,9 +479,22 @@ namespace kur{
             if (tmp)return iterator_type(tmp);
             else return this->end();
         }
-        inline void insert(const Key& _Key,const Value& _Val){//性能为std::unordered_map的18%
-            this->create(_Key,_Val);
+        inline void insert(const Key& _Key,const Value& _Val){//插入唯一键值,性能为std::unordered_map的18%
+            if (!this->get(_Key))this->create(_Key,_Val);
         }
+        inline void insert_multiple(const Key& _Key,const Value& _Val){
+            this->create(_Key,_Val);
+        };
+        inline void erase_multiple(const Key& _Key){
+            this->_bucket->erase_multiple(_Key);
+        };
+        inline void erase_multiple(unit_mul_type& unit_mul,const size_t idx){
+            this->_bucket->erase_multiple(unit_mul,idx);
+            unit_mul.erase(idx);
+        };
+        inline typename bk_type::unit_mul_type get_multiple(const Key& _Key){
+            return this->_bucket->get_mul_object(_Key);
+        };
         inline Value& operator[](const Key& _Key){
             element_type* tmp = this->get(_Key);
             if (tmp)return tmp->data.second;

@@ -15,7 +15,9 @@
 #endif // NDEBUG
 #include<stdexcept>
 #include<stdint.h>
+#ifdef __KUR_AVX2
 #include<immintrin.h>
+#endif
 #ifdef __KUR_ENABLE_STRING             
 #define __KUR_STRING
 #endif
@@ -29,7 +31,6 @@ namespace kur{
     static_assert(sizeof(void*) > 2,"Does not support less than 32-bit.");
     [[maybe_unused]] constexpr static bool is_x86 = sizeof(void*) == 4;
     [[maybe_unused]] constexpr static bool is_x64 = sizeof(void*) == 8;
-    template<typename T>concept TriviallyCopyableAndStandardLayout = std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>;
     namespace base{
         typedef unsigned long long ull;
         //x64-release模式下平均性能为std::memcpy的93%.
@@ -69,6 +70,7 @@ namespace kur{
             }
             return 0;
         }
+    #ifdef __KUR_AVX2
         //x64-release下平均性能为std::memcmp的108%.需要avx2指令集.
         int memcmp_avx2(const void* ptr1,const void* ptr2,size_t num){
             const uint8_t* p1 = static_cast<const uint8_t*>(ptr1),* p2 = static_cast<const uint8_t*>(ptr2);
@@ -83,6 +85,7 @@ namespace kur{
             }
             return 0;
         }
+    #endif
         template<typename Tchar> struct CharT{
         #ifdef __KUR_STRING
             using char_t = std::basic_string<Tchar,std::char_traits<Tchar>,std::allocator<Tchar>>;
@@ -818,7 +821,7 @@ namespace kur{
                 };
                 if (_copy)base::memcpy(_chunk,temp,_size * sizeof(Type));
                 this->_size = _esize;
-                if (_free)delete[] temp;
+                if (_free && temp)delete[] temp;
             };
             inline void _construct(const ull initSize = 0)noexcept{
                 if (initSize)create(initSize);
@@ -832,6 +835,16 @@ namespace kur{
                 this->_size = initSize;
                 this->_chunk = _malloc(initSize);
             };
+            inline void resize(const ull size_){
+                if (this->_size < size_){
+                    Type* temp = _chunk;
+                    this->_chunk = _malloc(size_);
+                    base::memcpy(_chunk,temp,this->_pos * sizeof(Type));
+                    delete[] temp;
+                    this->_size = size_;
+                }
+                for (;this->_pos < size_; ++this->_pos)this->_chunk[this->_pos] = Type();
+            }
             inline void move_from(Array&& other)noexcept{
                 if (_chunk)delete[] _chunk;
                 this->_chunk = other._chunk;
@@ -841,15 +854,17 @@ namespace kur{
                 other._size = 0;
                 other._pos = 0;
             };
-            Array(const Array& other)noexcept: _size(other._size),_pos(other._pos){
-                _chunk = new Type[_size];
-                if (_chunk && _pos > 0)for (ull i = 0; i < _pos; ++i)_chunk[i] = other._chunk[i];
-                this->_allow_del = other._allow_del;
+            Array(const Array& other)noexcept: _size(other._size),_pos(other._pos),_allow_del(other._allow_del){
+                if (other._chunk){
+                    _chunk = new Type[_size];
+                    for (ull i = 0; i < _pos; ++i)_chunk[i] = other._chunk[i];
+                } else _chunk = nullptr;
             };
             Array(Array&& other) noexcept: _allow_del(other._allow_del),_chunk(other._chunk),_size(other._size),_pos(other._pos){
                 other._chunk = nullptr;
                 other._size = 0;
                 other._pos = 0;
+                other._allow_del = false;
             };
             Array& operator=(Array&& other) noexcept{
                 if (this != &other){
@@ -867,11 +882,15 @@ namespace kur{
             };
             Array& operator=(const Array& other)noexcept{
                 if (this != &other){
-                    if (_chunk)delete[] _chunk;
-                    _size = other._size;
-                    _pos = other._pos;
-                    _chunk = new Type[_size];
-                    base::memcpy(_chunk,other._chunk,_pos * sizeof(Type));
+                    if (_chunk && _allow_del)delete[] _chunk;
+                    if (other._chunk){
+                        _size = other._size;
+                        _pos = other._pos;
+                        _allow_del = other._allow_del;
+                        _chunk = new Type[_size];
+                        if constexpr (std::is_trivially_destructible<Type>::value)base::memcpy(_chunk,other._chunk,_pos * sizeof(Type));
+                        else for (ull i = 0;i < _pos;++i)this->_chunck[i] = other.chunk[i];
+                    };
                 };
                 return *this;
             };
@@ -956,7 +975,11 @@ namespace kur{
                 --_pos;
             };
             ~Array(){
-                if (_chunk && _allow_del)delete[] _chunk;
+                if (_chunk && _allow_del){
+                    delete[] _chunk;
+                    this->_chunk = nullptr;
+                    this->_allow_del = false;
+                }
             };
             void __force_release_memory(){//error deal
                 if (this->_chunk)delete[] _chunk;
@@ -972,7 +995,7 @@ namespace kur{
             inline void insert(const ull index,const Type& value){//性能为std::vector<T>::insert的101.3%
                 KUR_DEBUG_ASSERT(if (index >= _pos){ throw std::runtime_error("Array<T> out of range !"); };);
                 if (this->_pos + 1 >= this->_size)expand();
-                if constexpr (std::is_trivially_destructible<Type>::value)std::memmove(this->_chunk + index + 1,this->_chunk + index,(this->_pos - index) * sizeof(Type));
+                if constexpr (std::is_trivially_destructible<Type>::value)::memmove(this->_chunk + index + 1,this->_chunk + index,(this->_pos - index) * sizeof(Type));
                 else for (ull idx = _pos; idx > index; --idx)this->_chunk[idx] = this->_chunk[idx - 1];
                 *(this->_chunk + index) = value;
                 ++_pos;
@@ -989,7 +1012,7 @@ namespace kur{
             };
             inline Type* find(const Type& value)noexcept{//对于POD类型,查找速度是std::find的2170%,其余则性能相同
                 for (const Type* beg = this->_chunk,*ends = this->_chunk + _pos;beg != ends;++beg)
-                    if constexpr (std::is_trivially_destructible<Type>::value)if (base::memcmp(beg,&value,sizeof(Type)))return (Type*)beg;
+                    if constexpr (std::is_trivially_destructible<Type>::value)if (!base::memcmp(beg,&value,sizeof(Type)))return (Type*)beg;
                     else if (*beg == value)return (Type*)beg;
                 return end();
             };
@@ -1041,6 +1064,10 @@ namespace kur{
                 this->write(tch);
                 return *this;
             }
+            inline String& operator+=(const Tchar tch){
+                this->write(tch);
+                return *this;
+            }
             inline const Tchar* operator()(const ull pos) const{
                 return &data[pos];
             };
@@ -1055,6 +1082,10 @@ namespace kur{
                 };
                 return *this;
             };
+            inline String& write(const Tchar tch){
+                this->data.push(tch);
+                return *this;
+            }
             inline String& write(const String& str){
                 const Tchar* data = str.get_data();
                 ull _len = str.data.size();
@@ -1219,9 +1250,16 @@ namespace kur{
                 }
                 return *this;
             }
-            inline T get(){
-                if (this->is_empty())throw std::runtime_error("heap is empty");
+            inline T get(bool _throw = true){//false为不抛异常
+                if (this->is_empty()){
+                    if (_throw)throw std::runtime_error("heap is empty");
+                    return T(0);
+                };
                 const T ret = this->_data[1];
+                if (this->size() == 1){
+                    this->clear();
+                    return ret;
+                };
                 this->_data[1] = *this->_data.pop();
                 const ull size = this->size();
                 ull now = 1,next = 2;
@@ -1303,7 +1341,11 @@ namespace kur{
                     };
                 };
             };
-            template<typename...Args>inline Node* insert_node(Node* parent_node,Args... arg){//平均每个节点占用314 Bytes,可以在构造时将init_size设置为较小的数值来减少初始大小.例如 using trees = kur::base::tree_types<int,2>;//->131 Bytes
+            inline Node* _insert_node(Node* parent_node,Node* ref_node){
+                parent_node->nodes.push(ref_node);
+                ++_size;
+            };
+            template<typename...Args>inline Node* insert_node(Node* parent_node,Args... arg){
                 if (parent_node){
                     Node* newNode = new Node(base::forward<Args>(arg)...);
                     if (newNode){
@@ -1369,18 +1411,18 @@ namespace kur{
                 };
                 return nullptr;
             };
-            bool delete_node(const T& value){//not del root
+            bool delete_node(const T& value,bool _free = true){//not del root
                 Node* parentNode = nullptr;
                 Node* nodeToDelete = find_node(_base_node,value,&parentNode);
                 if (nodeToDelete == nullptr || nodeToDelete == this->_base_node)return false;
                 for (ull i = 0; i < nodeToDelete->nodes.size(); ++i)parentNode->nodes.push(nodeToDelete->nodes[i]);
                 nodeToDelete->_allow_del = false;
                 parentNode->nodes.erase(parentNode->nodes.find(nodeToDelete) - parentNode->nodes.begin());
-                delete nodeToDelete;
+                if (_free)delete nodeToDelete;
                 --_size;
                 return true;
             };
-            bool delete_node(Node* node){
+            bool delete_node(Node* node,bool _free = true){
                 if (!node || node == this->_base_node)return false;
                 Node* parent_node = this->find_parent_node(this->_base_node,node);
                 if (!parent_node)return false;
@@ -1388,7 +1430,7 @@ namespace kur{
                 for (ull i = 0; i < node_to_delete->nodes.size(); ++i)parent_node->nodes.push(node_to_delete->nodes[i]);
                 node_to_delete->_allow_del = false;
                 parent_node->nodes.erase(parent_node->nodes.find(node_to_delete) - parent_node->nodes.begin());
-                delete node_to_delete;
+                if (_free)delete node_to_delete;
                 --_size;
                 return true;
             };

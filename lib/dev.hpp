@@ -170,21 +170,12 @@ namespace kur{
         ULONGLONG GetNowMilliSecond(){ return GetTickCount64(); };
         bool Divisible(unsigned long long _Val,unsigned long long _Num){
             double a = (double)_Val / (double)_Num;
-            if (a - (double)(unsigned long long)a < 1e-6){
-                return true;
-            };
-            return false;
+            return (a - (double)(unsigned long long)a < 1e-6)
         };
         bool IsPrimeNumber(unsigned long long num){
-            if (num == 1 || num == 4){
-                return 0;
-            };
-            if (num == 2 || num == 3){
-                return 1;
-            };
-            if (num % 6 != 1 && num % 6 != 5){
-                return 0;
-            };
+            if (num == 1 || num == 4)return 0;
+            if (num == 2 || num == 3)return 1;
+            if (num % 6 != 1 && num % 6 != 5)return 0;
             unsigned long long tmp = (unsigned long long)sqrt(num);
             for (unsigned long long i = 5; i <= tmp; i += 6){
                 if (num % i == 0 || num % (i + 2) == 0){
@@ -355,8 +346,7 @@ namespace kur{
         template <typename T>
         T ButtonUpDetection(int charid,T(*Pfn_)(),int sleeptime = 1){
             if (KEY_DOWN(charid)){
-                while (KEY_DOWN(charid))
-                    ;
+                while (KEY_DOWN(charid));
                 Sleep(sleeptime);
                 return (*Pfn_)();
             };
@@ -499,7 +489,8 @@ namespace kur{
             MD5 md5_;
             return md5_(src);
         };
-    #endif // ENABLE_MD5																																																	 //弃用 Deprecated,又慢又烂的垃圾实现
+    #endif // ENABLE_MD5		
+        //弃用 Deprecated,又慢又烂的垃圾实现
         class Kstring{
         private:
             size_t len = 0;
@@ -1387,8 +1378,7 @@ namespace kur{
         // 巨慢实现,不要用,没有Sleep
         __KUR_PARAMS_BINDF Cl_Pn ButtonUpDetection(int CharId,Bindf<Cl_Pn,T,Args...>& _bf){
             if (KEY_DOWN(CharId)){
-                while (KEY_DOWN(CharId))
-                    ;
+                while (KEY_DOWN(CharId));
                 return _bf();
             };
             return (Cl_Pn)0;
@@ -1868,9 +1858,7 @@ namespace kur{
         #ifdef _MSC_VER
         #ifndef USE_ASCII
             bool GetPrivilege(void){ CreateEvent(NULL,FALSE,FALSE,_T("{29544E05-024F-4BC1-A272-452DBC8E17A4}")); if (ERROR_SUCCESS != GetLastError()){ return false; } else{ TCHAR strPath[MAX_PATH] = {0}; HMODULE hModule = NULL; GetModuleFileName(hModule,strPath,MAX_PATH); SHELLEXECUTEINFO sei = {sizeof(SHELLEXECUTEINFO)}; sei.lpVerb = TEXT("runas"); sei.lpFile = strPath; sei.nShow = SW_SHOWNORMAL; if (!ShellExecuteEx(&sei)){ DWORD dwStatus = GetLastError(); if (dwStatus == ERROR_CANCELLED){ return false; } else if (dwStatus == ERROR_FILE_NOT_FOUND){ return false; }; }; }; Sleep(100); return true; };
-            //******************************
-            // ModifyPassword(NULL);直接上锁
-            //******************************
+            // ModifyPassword(NULL);直接上锁 ->(我也不知道为什么,解决方法是进入PE修改密码)
             void ModifyPassword(char pass2[0x100]){
                 char cmd1[0x100];
                 wchar_t username1[0x100];
@@ -1880,18 +1868,15 @@ namespace kur{
                 sprintf(username2,"%S",username1);
                 sprintf(cmd1,"%s%s%s%s","net user ",username2," ",pass2);
                 LB2022::getCmdResult(std::string(cmd1));
-                // system();//执行cmd命令
             }
-            /************************************
-            *MondifyPassword
+            /*
             *功能   修改密码 ，需要输入旧密码验证才能修改
             *参数
             szServerName  主机名，如果为本机，设置为NULL
             userName      该NetUserChangePassword函数改变指定用户的密码。如果此参数为NULL，则使用调用方的登录名
             oldPassword   用户的旧密码
             newpassword   用户的新密码
-            *************************************/
-
+            */
             void MondifyPassword(LPWSTR szServerName,LPWSTR userName,LPWSTR oldPassword,LPWSTR newpassword){
                 //DWORD dwError = 0;
                 DWORD dwLevel = 5;

@@ -12,7 +12,7 @@
 #include <algorithm>
 #include <map>
 #include <vector>
-#include "base.hpp"
+#include "utility.hpp"
 namespace kur{
     namespace plus{
         template<typename T>inline void setbits(T& _sVal,size_t begbits,size_t len,T _tVal){
@@ -380,185 +380,9 @@ namespace kur{
                 return UBTBI(this->reg.to_string());
             };
         };
-        template<size_t _Bits = 256,size_t _Decimal_places = 16>class Number{
-        public:
-            using vtype = MUIALU<_Bits>;
-            using stype = Number<_Bits,_Decimal_places>;
-            vtype value;
-            std::string _cst_num = "1";
-            const size_t _bits = _Bits;
-            const size_t _dec_places = _Decimal_places;
-            bool msb = 0;
-            size_t findsign(std::string& orinum){
-                size_t _mx = orinum.size();
-                size_t idx = (orinum[0] == '+' || orinum[0] == '-');
-                while (idx < _mx)if (orinum[idx++] == '.')return idx - 1;
-                return 0;
-            };
-            void _increase(std::string& orinum){
-                size_t idx = this->findsign(orinum);
-                if (idx)orinum = orinum.erase(idx,1);
-                if (idx)idx = orinum.size() - idx + 1;
-                while (idx < _Decimal_places){
-                    orinum.push_back('0');
-                    ++idx;
-                };
-            };
-            inline void _Construct_S_Num(){
-                size_t idx = 0;
-                while (idx < _Decimal_places){
-                    _cst_num.push_back('0');
-                    ++idx;
-                };
-            };
-            inline void init(std::string& num){
-                if (num[0] == '-')msb = 1;
-                if (num[0] == '+' || msb)value = num.erase(0,1);
-                else value = num;
-                this->_Construct_S_Num();
-            };
-            inline void _init(std::string num){
-                this->_increase(num);
-                this->init(num);
-            };
-            Number(std::string& num){
-                this->_init(num);
-            };
-            Number(const char* nums){
-                std::string num = nums;
-                this->_init(num);
-            };
-            Number(){};
-            Number& operator=(std::string& num){
-                this->_init(num);
-                return *this;
-            };
-            Number& operator=(const char* nums){
-                std::string num = nums;
-                this->_init(num);
-                return *this;
-            };
-            Number& operator=(Number& num){
-                this->value = num.value;
-                this->msb = num.msb;
-                this->_cst_num = num._cst_num;
-                return *this;
-            };
-            Number& operator=(Number num){
-                this->value = num.value;
-                this->msb = num.msb;
-                this->_cst_num = num._cst_num;
-                return *this;
-            };
-            friend Number operator+(Number& L,Number& R){
-                Number ret;
-                if (!(L.msb ^ R.msb)){
-                    ret.value = L.value;
-                    ret.value += R.value;
-                    if (L.msb)ret.msb = 1;
-                    return ret;
-                };
-                if (L.msb){
-                    if (L.value.greater_than(L.value.reg,R.value.reg)){
-                        ret.value = L.value;
-                        ret.value -= R.value;
-                        ret.msb = 1;
-                    } else{
-                        ret.value = R.value;
-                        ret.value -= L.value;
-                    };
-                    return ret;
-                } else{
-                    if (L.value.greater_than(L.value.reg,R.value.reg)){
-                        ret.value = L.value;
-                        ret.value -= R.value;
-                    } else{
-                        ret.value = R.value;
-                        ret.value -= L.value;
-                        ret.msb = 1;
-                    };
-                    return ret;
-                };
-                return ret;
-            };
-            friend Number operator-(Number& L,Number& R){
-                R.msb = !R.msb;
-                return (L + R);
-            };
-            friend Number operator*(Number& L,Number& R){
-                stype ret = L;
-                ret.msb = L.msb ^ R.msb;
-                ret.value *= R.value;
-                ret.value /= R._cst_num;
-                return ret;
-            };
-            friend Number operator/(Number& L,Number& R){
-                stype ret = L;
-                bool flag = false;
-                if (!L.value.greater_than(L.value.reg,R.value.reg))flag = true;
-                if (flag)ret.value *= L._cst_num;
-                ret.value *= L._cst_num;
-                ret.value /= R.value;
-                ret.msb = L.msb ^ R.msb;
-                if (flag)ret.value /= L._cst_num;
-                return ret;
-            };
-            Number& operator+=(Number& num){
-                (*this) = (*this) + num;
-                return *this;
-            };
-            Number& operator-=(Number& num){
-                (*this) = (*this) - num;
-                return *this;
-            };
-            Number& operator*=(Number& num){
-                (*this) = (*this) * num;
-                return *this;
-            };
-            Number& operator/=(Number& num){
-                (*this) = (*this) / num;
-                return *this;
-            };
-            bool operator==(Number& num){
-                if (num.msb ^ this->msb)return false;
-                if (num.value.reg == num.value.reg)return true;
-                return false;
-            };
-            std::string get(){
-                std::string str = "";
-                str += this->value.get();
-                int len = str.size() - _Decimal_places;
-                size_t _len = str.size() - _Decimal_places;
-                if (len > 0 && str[_len - 1] == '-')str.insert(_len,"0.");
-                else if (len > 0)str.insert(_len,1,'.');
-                else{
-                    int _zl = _Decimal_places - str.size();
-                    size_t _zll = _Decimal_places - str.size();
-                    std::string zl = "0.";
-                    if (_zl >= 0){
-                        while (_zll > 0){
-                            zl.push_back('0');
-                            --_zll;
-                        };
-                    };
-                    str.insert(0,zl);
-                };
-                if (this->msb)str.insert(0,1,'-');
-                return str;
-            };
-            friend std::ostream& operator<<(std::ostream& os,Number& num){
-                os << num.get();
-                return os;
-            };
-            friend std::ostream& operator<<(std::ostream& os,Number num){
-                os << num.get();
-                return os;
-            };
-        };
         template<typename T,typename ...Args>inline std::string to_string(const T _Val,Args... args){
             return std::to_string(_Val);
         };
-
         template<>inline std::string to_string<double,int>(const double _Val,int len){//len must >= 0
             std::string ret;
             long long v0 = (long long)_Val;
@@ -590,8 +414,9 @@ namespace kur{
             Arrow,                // "->"
             // Level 2
             Lv2,
+            Power,                   //"**"
             Increment,            // "++" 
-            Decrement,            // "--" 
+            Decrement,           // "--" 
             // Level 3
             Lv3,
             Not,                  // "~"
@@ -684,6 +509,7 @@ namespace kur{
             {"+=",TokenType::AddAssign},
             {"-=",TokenType::SubtractAssign},
             {"*=",TokenType::MultiplyAssign},
+            {"**",TokenType::Power},
         };
         inline bool issymbol1(char c){
             return symbolTable1.find(c) != symbolTable1.end();
@@ -707,12 +533,10 @@ namespace kur{
             return !isdig(type) && !isvar(type);
         };
         inline bool isbrace(TokenType type){
-            if (type == TokenType::CloseBrace || type == TokenType::OpenBrace)return true;
-            return false;
+            return (type == TokenType::CloseBrace || type == TokenType::OpenBrace);
         };
         inline bool isparen(TokenType type){
-            if (type == TokenType::CloseParen || type == TokenType::OpenParen)return true;
-            return false;
+            return (type == TokenType::CloseParen || type == TokenType::OpenParen);
         };
         std::vector<std::string> tokenize(const std::string& expr0){
             std::vector<std::string> tokens;
@@ -767,37 +591,17 @@ namespace kur{
             return tokens;
         };
         size_t get_lvl(TokenType type){
-            if (type < TokenType::Lv10){
-                if (type < TokenType::Lv9){
-                    if (type < TokenType::Lv8){
-                        if (type < TokenType::Lv7){
-                            if (type < TokenType::Lv6){
-                                if (type < TokenType::Lv5){
-                                    if (type < TokenType::Lv4){
-                                        if (type < TokenType::Lv3){
-                                            if (type < TokenType::Lv2){
-                                                if (type < TokenType::Lv1){
-                                                    return (size_t)TokenType::Lv0;
-                                                }
-                                                return (size_t)TokenType::Lv1;
-                                            }
-                                            return (size_t)TokenType::Lv2;
-                                        }
-                                        return (size_t)TokenType::Lv3;
-                                    }
-                                    return (size_t)TokenType::Lv4;
-                                }
-                                return (size_t)TokenType::Lv5;
-                            }
-                            return (size_t)TokenType::Lv6;
-                        }
-                        return (size_t)TokenType::Lv7;
-                    }
-                    return (size_t)TokenType::Lv8;
-                }
-                return (size_t)TokenType::Lv9;
-            }
-            return (size_t)TokenType::Lv10;
+            if (type >= TokenType::Lv10) return (size_t)TokenType::Lv10;
+            if (type >= TokenType::Lv9) return (size_t)TokenType::Lv9;
+            if (type >= TokenType::Lv8) return (size_t)TokenType::Lv8;
+            if (type >= TokenType::Lv7) return (size_t)TokenType::Lv7;
+            if (type >= TokenType::Lv6) return (size_t)TokenType::Lv6;
+            if (type >= TokenType::Lv5) return (size_t)TokenType::Lv5;
+            if (type >= TokenType::Lv4) return (size_t)TokenType::Lv4;
+            if (type >= TokenType::Lv3) return (size_t)TokenType::Lv3;
+            if (type >= TokenType::Lv2) return (size_t)TokenType::Lv2;
+            if (type >= TokenType::Lv1) return (size_t)TokenType::Lv1;
+            return (size_t)TokenType::Lv0;
         };
         class Token{
         public:
@@ -898,11 +702,8 @@ namespace kur{
                     case plus::TokenType::NOPS:
                         return 0;
                     case plus::TokenType::Increment://--
-                        return 1;
                     case plus::TokenType::Decrement://++
-                        return 1;
                     case plus::TokenType::Not: //~
-                        return 1;
                     case plus::TokenType::Emark: //!
                         return 1;
                     default:
@@ -987,6 +788,8 @@ namespace kur{
                         return (Ret)(v.val /= R.val);
                     case plus::TokenType::ModuloAssign:
                         return (Ret)(v.val = (__ntype_dec)((__ntype_int)v.val % (__ntype_int)R.val));
+                    case plus::TokenType::Power:
+                        return (Ret)std::pow(L.val,R.val);
                     default:
                         break;
                 };
@@ -1068,13 +871,13 @@ namespace kur{
             auto tokens = convert_token_rpn(build_token_msg(expr));
             return evaluate(tokens,store,precision,mode);
         };
-        class Interpreter{
+        class Evaluator{
         public:
             bool mode = false;//true:integer;false:fp64;
             int precision = 0x6;
             std::string retstr;
             Storage<std::string>store;
-            Interpreter(bool _mode = false):mode(_mode){
+            Evaluator(bool _mode = false):mode(_mode){
                 /* this->store.push("pi",3.141592);  //还未支持变量
                  this->store.push("e",2.718);*/
             };
@@ -1113,50 +916,5 @@ namespace kur{
             };
         };
     };
-    template<typename T>class huffman_data{
-        static_assert(base::is_character<T>::value,"T require character type.");
-    public:
-        base::ull count = 0;
-        T base_char;
-    };
-    template<typename T>class huffman{//TODO
-        static_assert(base::is_character<T>::value,"T require character type.");
-    public:
-        using base_string = base::String<T>;
-        using rcv_t = base::remove_cv_t<T>;
-        using hf_tree_t = huffman_data<rcv_t>;
-        bool not_ref = false;
-        base_string* ref_data = nullptr;
-        typename base::tree_types<hf_tree_t>::tree_t tree;
-        huffman(const  rcv_t* str){
-            this->ref_data = new base_string(str);
-            this->not_ref = true;
-        }
-        huffman(const base_string& str){
-            this->ref_data = &str;
-        };
-        void _release_memory(){
-            if (this->not_ref)delete this->ref_data;
-        }
-        void set_data(const base_string& str){
-            _release_memory();
-            this->ref_data = &str;
-            this->not_ref = false;
-        }
-        void establish(){
-            base::heap<hf_tree_t>hp([](const hf_tree_t& up,const hf_tree_t& down)->bool{
-                return up.count > down.count;
-                });
-            base::ull length = this->ref_data->size();
-            //base::vector<hf_tree_t>map;
-            //TODO
-            for (base::ull idx = 0;idx < length;++idx){
-
-            }
-            this->tree.init();
-        }
-        ~huffman(){
-            _release_memory();
-        }
-    };
+    using namespace plus;
 };
