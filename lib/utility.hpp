@@ -283,6 +283,9 @@ namespace kur{
         inline element_type& operator*(){
             return this->_tmp->data;
         };
+        inline element_type* operator->(){
+            return &this->_tmp->data;
+        };
         inline bucket_iterator& operator++(){
             if (!this->_tmp->next->is_end){
                 this->_tmp = this->_tmp->next;
@@ -345,8 +348,7 @@ namespace kur{
             return _Key.hash_value() % this->data.capacity();
         }
     #pragma warning(default : 4244)
-        node_type* set(const Key& _Key,const Value& _Val){
-            unit_type* tmp = &this->data[this->get_pos(_Key)];
+        node_type* set(unit_type* tmp,const Key& _Key,const Value& _Val){
             if (this->_last){
                 if (!tmp->next){
                     this->_last->next = tmp;
@@ -363,7 +365,13 @@ namespace kur{
             }
             ++this->_size;
             return tmp->insert(_Key,_Val);
-        }
+        };
+        inline unit_type* get_node(const Key& _Key){
+            return &this->data[this->get_pos(_Key)];
+        };
+        inline node_type* set(const Key& _Key,const Value& _Val){
+            return this->set(this->get_node(_Key),_Key,_Val);
+        };
         inline void erase(unit_type* tmp,node_type* getv){
             if (getv == nullptr)return;
             if (tmp->unit.size() > 1){
@@ -389,10 +397,12 @@ namespace kur{
             for (size_t idx = 0;idx < getv._pos;++idx)this->erase(tmp,getv[idx]);
         }
         inline void erase_multiple(const unit_mul_type& unit_mul,const size_t idx){
-            if (idx >= unit_mul.size() || !unit_mul.size())return;
+            if (idx != -1 && idx >= unit_mul.size() || !unit_mul.size())return;
             unit_type* tmp = &this->data[this->get_pos(unit_mul[0]->data.first)];
             if (tmp == nullptr)return;
-            this->erase(tmp,unit_mul[idx]);
+            if (idx == (size_t)(-1)){
+                for (ull index = 0;index < unit_mul._pos;++index)this->erase(tmp,unit_mul[index]);
+            } else this->erase(tmp,unit_mul[idx]);
         }
         inline uint64_t size(){
             return this->_size;
@@ -405,6 +415,84 @@ namespace kur{
         };
         inline unit_mul_type get_mul_object(const Key& _Key){
             return this->data[this->get_pos(_Key)].get_mul_object(_Key);
+        };
+    };
+    template<typename Key,typename Value>class unordered_map;
+    template<typename Key,typename Value>class mul_map_iterator;
+    template<typename Key,typename Value>class mul_iterator{
+    public:
+        using parent_type = mul_map_iterator<Key,Value>;
+        using element_type = hash_node_unit<Key,Value>;
+        parent_type* root = nullptr;
+        ull offset = 0;
+        mul_iterator(){};
+        mul_iterator(parent_type* root_,const ull ofx = 0){
+            this->root = root_;
+            this->offset = ofx;
+        };
+        mul_iterator(const mul_iterator& other,const ull ofx = 0){
+            this->root = other.root;
+            this->offset = other.offset + ofx;
+        }
+        inline bool operator!=(const mul_iterator& rv){
+            return !(*this == rv);
+        };
+        inline bool operator==(const mul_iterator& rv){
+            return this->offset == rv.offset && this->root == rv.root;
+        };
+        inline mul_iterator& operator=(const mul_iterator& rv){
+            if (this == &rv)return *this;
+            this->root = rv.root;
+            this->offset = rv.offset;
+            return *this;
+        };
+        inline element_type& operator*(){
+            return this->root->data[this->offset]->data;
+        };
+        inline element_type* operator->(){
+            return &this->root->data[this->offset]->data;
+        }
+        inline mul_iterator& operator++(){
+            ++this->offset;
+            return *this;
+        };
+        inline mul_iterator operator++(int){
+            auto temp = *this;
+            ++(*this);
+            return temp;
+        };
+    };
+    template<typename Key,typename Value>class mul_map_iterator{
+    public:
+        using node_type = typename  base::list<hash_node_unit<Key,Value>>::node_type;
+        using unit_mul_type = base::vector<node_type*>;
+        using x_iterator = typename unit_mul_type::itreator;
+        using iterator = mul_iterator<Key,Value>;
+        kur::unordered_map<Key,Value>* root = nullptr;
+        unit_mul_type data;
+        mul_map_iterator(){};
+        mul_map_iterator(const unit_mul_type&& move_unit){
+            data.move_from(move_unit);
+        };
+        inline ull size(){
+            return this->data._pos;
+        };
+        inline iterator begin(){
+            return iterator(this);
+        }
+        inline iterator end(){
+            return iterator(this,data._pos);
+        }
+        inline iterator erase(const iterator& itr){
+            this->root->erase_multiple(this->data,itr.offset);
+            return iterator(itr,1);
+        }
+        inline iterator get(ull idx){
+            if (idx >= this->data._pos)throw std::runtime_error("index out of range.");
+            return iterator(this,idx);
+        }
+        inline hash_node_unit<Key,Value>& operator[](const ull idx){
+            return this->data[idx]->data;
         };
     };
     /*对于自定义数据结构做为Key的要求:重载==操作符,默认构造函数,带参构造函数,uint64_t hash_value()const函数.
@@ -421,87 +509,135 @@ namespace kur{
         using element_type = typename base::list<hash_node_unit<Key,Value>>::node_type;
         using node_type = typename base::list_node<hash_node_unit<Key,Value>>;
         using unit_mul_type = base::vector<node_type*>;
+        using mul_x_iterator = mul_map_iterator<Key,Value>;
+        using mul_iterator = typename mul_x_iterator::iterator;
         float factor = 0;//负载因子
         bk_type* _bucket = nullptr;//桶
         unordered_map(const uint64_t base_size = 0x20,const float _factor = 0.7f){
             this->_bucket = new bk_type(base_size,_factor);
             this->factor = _factor;
-        }
+        };
         inline iterator_type begin(){//迭代器:开始
             return this->_bucket->begin();
-        }
+        };
         inline iterator_type end(){//迭代器:结束
             return this->_bucket->end();
-        }
+        };
         void clear(){//清空
             uint64_t _length = this->_bucket->data.capacity();
             delete this->_bucket;
             this->_bucket = new bk_type(_length,this->factor);
-        }
+        };
         void expand(){//扩容
             bk_type* tmp = this->_bucket;
             this->_bucket = new bk_type(tmp->data.capacity() << 1,this->factor);
             for (auto& itr : *tmp)this->_bucket->set(itr.first,itr.second);
             delete tmp;
-        }
+        };
+        inline void rehash(){
+            if (this->load_factor() > this->factor)this->expand();
+        };
+        inline void reserve(uint64_t new_capacity){
+            if (new_capacity > this->_bucket->data.capacity()){
+                bk_type* tmp = this->_bucket;
+                this->_bucket = new bk_type(new_capacity,this->factor);
+                for (auto& itr : *tmp)this->_bucket->set(itr.first,itr.second);
+                delete tmp;
+            };
+        };
         inline uint64_t size(){//以使用元素个数
             return this->_bucket->size();
-        }
+        };
+        inline uint64_t capacity(){
+            return this->_bucket->_size;
+        };
         inline bool is_empty(){//是否为空
             return !this->_bucket->_size;
-        }
-        inline void set_factor(const float _factor){//设置负载因子
+        };
+        inline void set_factor(const float _factor){//设置负载因子,扩容操作在下一次insert前检测触发
             this->_bucket->set_factor(_factor);
             this->factor = _factor;
-        }
+        };
         inline uint64_t get_limit(){//获取最大负载上限
             return this->_bucket->limit;
-        }
+        };
         inline float load_factor(){//当前负载率
             return (float)this->size() / (float)this->get_limit();
-        }
+        };
         inline float bucket_utilization(){//真实空间使用率
             return  (float)this->size() / (float)this->_bucket->data.capacity();
+        };
+        template<typename... Args>inline void create_multiple(const Key& _Key,const Args&&... _Vals){
+            auto tmp = this->_bucket->get_node(_Key);
+            while (this->_bucket->_size + sizeof...(_Vals) >= this->_bucket->limit)this->expand();
+            (this->_bucket->set(tmp,_Key,base::forward<const Args>(_Vals)),...);
         }
         inline element_type* create(const Key& _Key,const Value& _Val){//插入键值,key->value,value,...
             element_type* tmp = this->_bucket->set(_Key,_Val);
             if (this->_bucket->_size >= this->_bucket->limit)this->expand();
             return tmp;
-        }
-        inline void erase(const Key& _Key){//删除,性能为std::unordered_map的86%
+        };
+        inline void erase(const Key& _Key){//删除单个键值对,如果键对应多个值只会删除第一个插入的值
             this->_bucket->erase(_Key);
-        }
-        inline element_type* get(const Key& _Key){//返回nullpter为不存在.性能为std::unordered_map的100%
+        };
+        inline mul_iterator erase(const mul_iterator& itr){//删除多个键值
+            this->erase_multiple(itr.root->data,itr.offset);
+            return mul_iterator(itr,1);
+        };
+        inline element_type* get(const Key& _Key){//不存在时返回nullpter
             return this->_bucket->get_object(_Key);
-        }
-        inline iterator_type find(const Key& _Key){//返回尾部迭代器为不存在.性能为std::unordered_map的90%
+        };
+        inline iterator_type find(const Key& _Key){//不存在时返回尾部迭代器
             element_type* tmp = this->get(_Key);
             if (tmp)return iterator_type(tmp);
             else return this->end();
-        }
-        inline void insert(const Key& _Key,const Value& _Val){//插入唯一键值,性能为std::unordered_map的18%
-            if (!this->get(_Key))this->create(_Key,_Val);
-        }
-        inline void insert_multiple(const Key& _Key,const Value& _Val){
-            this->create(_Key,_Val);
         };
-        inline void erase_multiple(const Key& _Key){
+        inline kur::unordered_map<Key,Value>& insert(const Key& _Key,const Value& _Val){//插入唯一键值
+            element_type* tmp = this->get(_Key);
+            if (!tmp)this->create(_Key,_Val);
+            else tmp->data.second = _Val;
+            return *this;
+        };
+        inline kur::unordered_map<Key,Value>& insert_multiple(const Key& _Key,const Value& _Val){//为键插入多个单值
+            this->create(_Key,_Val);
+            return *this;
+        };
+        inline void erase_multiple(const Key& _Key){//删除多个键
             this->_bucket->erase_multiple(_Key);
         };
-        inline void erase_multiple(unit_mul_type& unit_mul,const size_t idx){
+        inline void erase_multiple(unit_mul_type& unit_mul,const size_t idx){//删除多键迭代器中的对象
             this->_bucket->erase_multiple(unit_mul,idx);
-            unit_mul.erase(idx);
+            unit_mul[idx] = nullptr;
         };
-        inline typename bk_type::unit_mul_type get_multiple(const Key& _Key){
+        inline typename bk_type::unit_mul_type _get_multiple_unit(const Key& _Key){//内部函数,获取多键原始表示
             return this->_bucket->get_mul_object(_Key);
         };
-        inline Value& operator[](const Key& _Key){
+        inline mul_x_iterator get_multiple(const Key& _Key){//获取多键值迭代器
+            mul_x_iterator itr;
+            itr.root = this;
+            itr.data = this->_bucket->get_mul_object(_Key);
+            return itr;
+        };
+        inline void erase(const mul_x_iterator& mitr){//和erase_multiple一样
+            this->_bucket->erase_multiple(mitr.data,-1);
+        };
+        inline void erase_multiple(const mul_x_iterator& unit_mul){//删除多个键
+            this->erase(unit_mul);
+        };
+        inline Value& operator[](const Key& _Key){//获取单个键值对
             element_type* tmp = this->get(_Key);
             if (tmp)return tmp->data.second;
             else return this->create(_Key,Value())->data.second;
         };
+        inline mul_x_iterator operator()(const Key& _Key){//获取多个键值对
+            return this->get_multiple(_Key);
+        };
+        template<typename... Args>inline kur::unordered_map<Key,Value>& operator()(const Key& _Key,const Args&&... _Vals){//多值插入
+            ((this->create_multiple(_Key,base::forward<const Args>(_Vals))),...);
+            return *this;
+        };
         ~unordered_map(){
             if (this->_bucket)delete this->_bucket;
-        }
+        };
     };
 };

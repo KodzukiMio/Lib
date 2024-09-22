@@ -733,7 +733,7 @@ namespace kur{
                 return tmp;
             }
             void erase(const node_type* tmp){
-                if (!tmp)throw std::runtime_error("ptr is nullptr !.");
+                if (!tmp)return;
                 if (this->_size > 1){
                     if (tmp == this->address){
                         node_type* tmp_ = this->address;
@@ -802,6 +802,7 @@ namespace kur{
         };
         template<typename Type,ull init_size = 0x10>class Array{
         public:
+            using itreator = Type*;
             bool _allow_del = true;
             Type* _chunk = nullptr;
             ull _size = 0;
@@ -868,7 +869,6 @@ namespace kur{
             };
             Array& operator=(Array&& other) noexcept{
                 if (this != &other){
-                    if (!this->capacity())return *this;
                     if (_chunk)delete[] _chunk;
                     _allow_del = other._allow_del;
                     _chunk = other._chunk;
