@@ -170,7 +170,7 @@ namespace kur{
         ULONGLONG GetNowMilliSecond(){ return GetTickCount64(); };
         bool Divisible(unsigned long long _Val,unsigned long long _Num){
             double a = (double)_Val / (double)_Num;
-            return (a - (double)(unsigned long long)a < 1e-6)
+            return (a - (double)(unsigned long long)a < 1e-6);
         };
         bool IsPrimeNumber(unsigned long long num){
             if (num == 1 || num == 4)return 0;

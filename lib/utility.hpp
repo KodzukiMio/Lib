@@ -28,28 +28,6 @@ namespace kur{
     using ubyte2 = base::word;
     using ubyte4 = base::dword;
     using ubyte8 = base::qword;
-    template<typename Ty = void,typename BaseT = Ty,typename Rty = std::conditional_t<std::is_floating_point_v<Ty>,std::conditional_t<sizeof(double) == sizeof(long double),double,long double>,int64_t>>inline Rty sumof(Ty* address,size_t length,size_t offset = sizeof(Ty)){
-        static_assert(std::is_pod_v<BaseT>&std::is_pod_v<Ty>&std::is_pod_v<Rty>,"Error Types!");
-        if (!length || !address || !offset)throw std::runtime_error("<sumof> error arguments !");
-        Rty rax = 0;
-        do{
-            rax += *(BaseT*)address;
-            address = (Ty*)((int8_t*)address + offset);
-        } while (--length);
-        return rax;
-    };
-    template<typename T = char>base::String<T> xor_crypt(base::String<T>& src,base::String<T>& key){//简易数据加密(不要用于重要数据)
-        T* sbytes = src.data._chunk;
-        ull ssize = src.size();
-        T* kbytes = key.data._chunk;
-        ull ksize = key.size();
-        if (!ksize || !ssize || ksize > ssize) throw std::invalid_argument("key or src size must > 0 and key size <= src size.");
-        base::String<T> result;
-        result.data._construct(ssize);
-        result.data._pos = ssize;
-        for (ull i = 0; i < ssize; ++i)result[i] = sbytes[i] ^ kbytes[i % ksize];
-        return result;
-    };
     class stack{//运行时栈(自动扩容),用于递归优化和不定参数传参(可变参数模板太麻烦了...),请勿传入非POD类型!
     public:
         using size_type = ubyte8;
@@ -129,7 +107,7 @@ namespace kur{
             kur::_copy_to<T>(_Val,base::npos,&_data);//base::npos确保始终选择sizeof(T).
         };
     };
-    //用于对类型T进行字节级别的操作;<T>不建议使用非POD类型.
+    //用于对类型T进行字节操作;<T>不建议使用非POD类型.
     //类实例化大小与T一致(sizeof(T)==sizeof(ByteContainer<T>))=>true.
     template<typename T>class ByteContainer{
     public:

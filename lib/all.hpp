@@ -1,7 +1,7 @@
 #pragma once
-#include"dev.hpp"
+#include "dev.hpp"
 #include "utility.hpp"
-#include"plus.hpp"
+#include "plus.hpp"
 namespace kur{
     using namespace kur::base;
     using namespace kur::plus;
