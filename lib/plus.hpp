@@ -2,16 +2,15 @@
 #ifndef _kurzerplus_
 #define _kurzerplus_
 #endif
-#include <iostream>
 #include <stdexcept>
 #include <type_traits>
 #include <memory>
-#include <string>
 #include <unordered_map>
 #include <bitset>
 #include <algorithm>
 #include <map>
 #include <vector>
+#include <cmath>
 #include "utility.hpp"
 namespace kur{
     namespace plus{
@@ -789,7 +788,7 @@ namespace kur{
                     case plus::TokenType::ModuloAssign:
                         return (Ret)(v.val = (__ntype_dec)((__ntype_int)v.val % (__ntype_int)R.val));
                     case plus::TokenType::Power:
-                        return (Ret)std::pow(L.val,R.val);
+                        return (Ret)pow(L.val,R.val);
                     default:
                         break;
                 };

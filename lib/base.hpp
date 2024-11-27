@@ -1,5 +1,5 @@
 ﻿//2023-2024
-//适用于 C++17 及以上标准
+//适用于 C++17 及以上标准,在MSVC下获得更好的性能
 #pragma once
 #ifndef _kurzerbase_
 #define _kurzerbase_
@@ -239,6 +239,7 @@ namespace kur{
         template <typename T,typename... Args>struct has_constructor{
             static constexpr bool value = decltype(base::test_constructor<T,Args...>(0))::value;
         };
+        template <typename Ty>Ty _Returns_exactly() noexcept; // not define
         template<typename Tchar> inline static ull strlen(const Tchar* str){
             const Tchar* p = str;
             while (*p)++p;
@@ -262,7 +263,7 @@ namespace kur{
                 ++_Begin;
             };
         };
-        template <typename _Ty>inline void swap(_Ty& _Left,_Ty& _Right){
+        template <typename _Ty>inline void swap_item(_Ty& _Left,_Ty& _Right){
             _Ty _Tmp = base::move(_Left);
             _Left = base::move(_Right);
             _Right = base::move(_Tmp);
@@ -458,7 +459,7 @@ namespace kur{
             list_node* next = nullptr;
             list_node* pre = nullptr;
             T data;
-            list_node(){};
+            list_node():data(){};
             list_node(const T& val){
                 this->data = val;
             };
@@ -470,9 +471,21 @@ namespace kur{
             bool is_reverse = false;
             list_iterator(unit_type* pos,bool _reverse = false): _pos(pos),is_reverse(_reverse){};
             list_iterator(const unit_type* pos,bool _reverse = false): _pos(const_cast<unit_type*>(pos)),is_reverse(_reverse){};
+            list_iterator(const list_iterator& rv): _pos(rv._pos),is_reverse(rv.is_reverse){}
             inline T& operator*(){
                 return this->_pos->data;
             };
+            inline T* operator->(){
+                return this->_pos->data;
+            }
+            list_iterator& operator=(list_iterator&& other) noexcept{
+                if (this != &other){
+                    _pos = other._pos;
+                    is_reverse = other.is_reverse;
+                    other._pos = nullptr;
+                }
+                return *this;
+            }
             inline bool operator!=(const list_iterator& rv){
                 return this->_pos != rv._pos;
             };
@@ -508,7 +521,7 @@ namespace kur{
             };
         };
 
-        template<typename T>class list{
+        template<typename T>class list{//TODO 改为双向带头节点的循环链表
         public:
             using node_type = list_node<T>;
             using iterator_type = list_iterator<T>;
@@ -560,6 +573,7 @@ namespace kur{
                     address->pre = &end_node;
                     last = address;
                 };
+                end_node.pre = last;
                 ++_size;
                 return this->last;
             };
@@ -572,6 +586,9 @@ namespace kur{
                 while (tmp && _pos--)tmp = tmp->next;
                 return tmp;
             }
+            inline T& operator[](const uint64_t pos){
+                return this->get(pos)->data;
+            };
             void erase(const node_type* tmp){
                 if (!tmp)return;
                 if (this->_size > 1){
@@ -619,7 +636,7 @@ namespace kur{
                 } else throw std::runtime_error("list<T> out of range.");
                 ++this->_size;
             };
-            void insert_back(const uint64_t pos,const T& val){
+            inline void insert_back(const uint64_t pos,const T& val){
                 this->insert_back(this->get(pos),val);
             };
             void traverse(void(*_Pfn)(node_type&)){
@@ -833,7 +850,7 @@ namespace kur{
                 return _chunk + index;
             };
             inline void insert(const ull index,const Type& value){//性能为std::vector<T>::insert的101.3%
-                KUR_DEBUG_ASSERT(if (index >= _pos){ throw std::runtime_error("Array<T> out of range !"); };);
+                KUR_DEBUG_ASSERT(if (index > _pos){ throw std::runtime_error("Array<T> out of range !"); };);
                 if (this->_pos + 1 >= this->_size)expand();
                 if constexpr (std::is_trivially_destructible<Type>::value)::memmove(this->_chunk + index + 1,this->_chunk + index,(this->_pos - index) * sizeof(Type));
                 else for (ull idx = _pos; idx > index; --idx)this->_chunk[idx] = this->_chunk[idx - 1];
@@ -1001,61 +1018,6 @@ namespace kur{
             }
         };
         template<typename Ty1,typename Ty2>using pair = simple_pair<Ty1,Ty2>;
-        template<typename T,ull _BaseN = 0x10> class Queue{
-        private:
-            ull _head = 0;
-            ull _tail = 0;
-        public:
-            base::Array<T> _data = base::Array<T>(_BaseN);
-            Queue(){};
-            inline ull capacity(){
-                return _data.capacity();
-            };
-            inline ull size(){
-                return _data.size();
-            };
-            inline bool is_empty(){
-                return _head == _tail;
-            };
-            inline bool is_full(){
-                return (_tail + 1) % capacity() == _head;
-            };
-            inline T& get(const ull pos){
-                return _data[_head + pos];
-            };
-            inline T* get_unsafe(const ull pos){
-                return _data(_head + pos);
-            };
-            inline T& operator[](const ull pos){
-                return this->get(pos);
-            };
-            inline const T& operator[](const ull pos) const{
-                return this->get(pos);
-            };
-            template<typename _Ty> inline void push(_Ty&& _Val){
-                if (is_full())_data.expand();
-                _data[_tail] = base::forward<_Ty>(_Val);
-                _tail = (_tail + 1) % capacity();
-                ++_data._pos;
-            };
-            inline T* begin(){
-                return _data._chunk + this->_head;
-            };
-            inline T* end(){
-                return _data._chunk + _data._pos;
-            };
-            inline T* pop(){
-                if (this->is_empty()){
-                    KUR_DEBUG_ASSERT(throw std::runtime_error("Queue is empty!");)else{
-                        return nullptr;
-                    };
-                };
-                T* ret = _data(_head);
-                _head = (_head + 1) % capacity();
-                return ret;
-            };
-        };
-        template<typename T> using queue = Queue<T,0x10>;
         template<typename T>class heap{
         public:
             base::Array<T,0>_data;
@@ -1085,7 +1047,7 @@ namespace kur{
                 while (_Pos > 1){
                     const ull _Half_Pos = _Pos >> 1;
                     if (this->_Pfn(this->_data[_Half_Pos],val))break;
-                    base::swap(this->_data[_Pos],this->_data[_Half_Pos]);
+                    base::swap_item(this->_data[_Pos],this->_data[_Half_Pos]);
                     _Pos = _Half_Pos;
                 }
                 return *this;
@@ -1105,7 +1067,7 @@ namespace kur{
                 ull now = 1,next = 2;
                 while (next <= size){
                     if (next < size && this->_Pfn(this->_data[next + 1],this->_data[next]))++next;
-                    if (this->_Pfn(this->_data[next],this->_data[now]))base::swap(this->_data[next],this->_data[now]);
+                    if (this->_Pfn(this->_data[next],this->_data[now]))base::swap_item(this->_data[next],this->_data[now]);
                     else break;
                     now = next;
                     next = (now << 1);
@@ -1304,5 +1266,4 @@ namespace kur{
     using kur::base::vector;
     using kur::base::string;
     using kur::base::wstring;
-    using kur::base::queue;
 };

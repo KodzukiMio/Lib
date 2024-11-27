@@ -189,6 +189,9 @@ namespace kur{
             this->first = _Key;
             this->second = _Val;
         };
+        operator std::pair<Key,Value>() const{
+            return std::make_pair(first,second);
+        }
     };
 #pragma warning(default : 26495)
     template<typename Key,typename Value>class bucket_unit{
@@ -313,7 +316,7 @@ namespace kur{
             this->factor = _factor;
             this->limit = this->factor * this->data.capacity();
         }
-        template<typename T>inline uint64_t get_pos(const base::String<T>& _Key,bool){
+        template<typename T>inline uint64_t get_pos(const base::String<T>& _Key,bool){//TODO : 部分字符串构造失败
             return (_Key.hash_value() % this->data.capacity());
         }
         template<typename T> inline uint64_t get_pos(const std::basic_string<T>& _Key){
@@ -515,13 +518,19 @@ namespace kur{
         inline void rehash(){
             if (this->load_factor() > this->factor)this->expand();
         };
-        inline void reserve(uint64_t new_capacity){
+        inline bool reserve(uint64_t new_capacity){
             if (new_capacity > this->_bucket->data.capacity()){
                 bk_type* tmp = this->_bucket;
                 this->_bucket = new bk_type(new_capacity,this->factor);
+                if (!this->_bucket){
+                    KUR_DEBUG_ASSERT(throw std::runtime_error("map reserve error.");)
+                else return false;
+                }
                 for (auto& itr : *tmp)this->_bucket->set(itr.first,itr.second);
                 delete tmp;
+                return true;
             };
+            return false;
         };
         inline uint64_t size(){//以使用元素个数
             return this->_bucket->size();
